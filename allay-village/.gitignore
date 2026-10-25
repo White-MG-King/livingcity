@@ -1,0 +1,14 @@
+.gradle/
+build/
+run/
+run-client/
+remappedSrc/
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+bin/
+logs/

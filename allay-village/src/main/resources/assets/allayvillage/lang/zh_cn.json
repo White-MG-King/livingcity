@@ -1,0 +1,9 @@
+{
+  "mod.allayvillage.name": "悦灵村庄",
+  "block.allayvillage.resonance_table": "共鸣台",
+  "block.allayvillage.allay_roost": "悦灵巢穴",
+  "entity.allayvillage.profession.courier": "信使",
+  "entity.allayvillage.profession.tuner": "调律师",
+  "entity.allayvillage.profession.gatherer": "采集者",
+  "entity.allayvillage.profession.gemsmith": "宝石匠"
+}

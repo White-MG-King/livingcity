@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "allayvillage",
+  "version": "${version}",
+  "name": "悦灵村庄 Allay Village",
+  "description": "让悦灵像村民一样拥有自己的村庄：职业、工作站点、交易、日程与声望。",
+  "authors": [
+    "lumemind"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/allayvillage/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.lumemind.allayvillage.AllayVillageMod"
+    ],
+    "client": [
+      "com.lumemind.allayvillage.client.AllayVillageClient"
+    ],
+    "fabric-datagen": [
+      "com.lumemind.allayvillage.datagen.AllayVillageDataGenerator"
+    ]
+  },
+  "mixins": [
+    "allayvillage.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  }
+}

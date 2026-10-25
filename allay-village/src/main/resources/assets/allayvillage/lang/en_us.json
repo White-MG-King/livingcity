@@ -1,0 +1,9 @@
+{
+  "mod.allayvillage.name": "Allay Village",
+  "block.allayvillage.resonance_table": "Resonance Table",
+  "block.allayvillage.allay_roost": "Allay Roost",
+  "entity.allayvillage.profession.courier": "Courier",
+  "entity.allayvillage.profession.tuner": "Tuner",
+  "entity.allayvillage.profession.gatherer": "Gatherer",
+  "entity.allayvillage.profession.gemsmith": "Gemsmith"
+}

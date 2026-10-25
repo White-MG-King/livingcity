@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.lumemind.allayvillage.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "AllayEntityMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
