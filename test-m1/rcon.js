@@ -1,8 +1,34 @@
 const net = require('net');
+const fs = require('fs');
+const path = require('path');
+
+// 读取 test-m1/.env（已被 .gitignore 排除，密码不进仓库）
+function loadDotEnv() {
+  const p = path.join(__dirname, '.env');
+  if (!fs.existsSync(p)) return;
+  for (const raw of fs.readFileSync(p, 'utf8').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+    if (!m) continue;
+    if (process.env[m[1]] === undefined) {
+      process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
+    }
+  }
+}
+loadDotEnv();
 
 const HOST = process.env.RCON_HOST || '127.0.0.1';
 const PORT = Number(process.env.RCON_PORT || 25575);
-const PASS = process.env.RCON_PASS || 'livingcity-dev';
+const PASS = process.env.RCON_PASS;
+
+if (!PASS) {
+  console.error(
+    '缺少 RCON_PASS：把 test-m1/.env.example 复制为 test-m1/.env 并填入服务器的 rcon.password，' +
+    '或先设置环境变量 RCON_PASS 再运行。'
+  );
+  process.exit(1);
+}
 
 function packet(id, type, body) {
   const b = Buffer.from(body, 'utf8');

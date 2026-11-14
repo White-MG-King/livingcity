@@ -19,6 +19,9 @@ _dev-backup-*/
 # ---- Obsidian 本地笔记配置 ----
 .obsidian/
 
+# ---- 本地配置 / 密钥（.env.example 会入库，.env 不入库） ----
+.env
+
 # ---- 本地一次性脚本 / 探针产物（保留在磁盘，不入库） ----
 /focus-*.ps1
 /min-term-*.ps1
