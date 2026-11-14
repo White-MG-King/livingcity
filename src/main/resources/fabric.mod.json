@@ -1,25 +1,25 @@
 {
 	"schemaVersion": 1,
-	"id": "tutorialmod",
+	"id": "livingcity",
 	"version": "${version}",
-	"name": "Tutorial Mod",
-	"description": "Fabric 1.20.1 模组开发环境示例（空模组）",
+	"name": "万灵之城 Living City",
+	"description": "让手工建造的城市活过来：市民日程、夜间安全契约、电梯垂直交通；并像 WorldBox 那样给悦灵等动物赋予人类智慧（万灵觉醒）。",
 	"authors": [
 		"YourName"
 	],
 	"contact": {},
 	"license": "CC0-1.0",
-	"icon": "assets/tutorialmod/icon.png",
+	"icon": "assets/livingcity/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.example.tutorialmod.TutorialMod"
+			"com.livingcity.LivingCityMod"
 		],
 		"client": [
-			"com.example.tutorialmod.TutorialModClient"
+			"com.livingcity.LivingCityClient"
 		],
 		"fabric-datagen": [
-			"com.example.tutorialmod.datagen.TutorialModDataGenerator"
+			"com.livingcity.datagen.LivingCityDataGenerator"
 		]
 	},
 	"depends": {

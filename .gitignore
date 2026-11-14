@@ -1,7 +1,29 @@
+# ---- Gradle / 构建产物 ----
 .gradle/
 build/
 out/
-run/
 src/main/generated/
+
+# ---- Loom 开发运行目录（世界存档、日志、下载的 assets 不入库） ----
+run/
+logs/
+_dev-backup-*/
+
+# ---- IDE ----
 .idea/
 *.iml
+*.ipr
+*.iws
+.vscode/
+
+# ---- Obsidian 本地笔记配置 ----
+.obsidian/
+
+# ---- 本地一次性脚本 / 探针产物（保留在磁盘，不入库） ----
+/focus-*.ps1
+/min-term-*.ps1
+/list-windows.ps1
+/start-runclient-*.cmd
+*.fs-probe.txt
+*.tailnet-probe.txt
+gensources.log

@@ -14,11 +14,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  * 当前 (M0/M1): 持久化 AllayVillageData, 重启不丢。
  * 后续:
- *   M2 -> initGoals 注入工作/休息/社交 Goal
+ *   M2 -> 注入工作/休息/社交 Goal
  *   M3 -> interactMob 分支打开交易界面
  *   M6 -> 声望读写
  *
  * 运行期取数据: AllayVillageData.of(allay)
+ *
+ * 注意: initGoals 定义在 MobEntity, AllayEntity 并未 override。
+ * 直接 @Inject(method = "initGoals") 会抛 InvalidInjectionException
+ * (TargetSelectors.validate 找不到目标, 2026-10-26 runClient 实测)。
+ * M2 落地时改用 @Inject(method = "<init>", at = @At("TAIL"))
+ * (此时父类构造器已调过 initGoals, goalSelector 可用),
+ * 或注入 MobEntity 并用 instanceof AllayEntity 判定。
  */
 @Mixin(AllayEntity.class)
 public abstract class AllayEntityMixin {
@@ -34,12 +41,5 @@ public abstract class AllayEntityMixin {
     @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
     private void allayvillage$readData(NbtCompound nbt, CallbackInfo ci) {
         allayvillage$data = AllayVillageData.readNbt(nbt);
-    }
-
-    @Inject(method = "initGoals", at = @At("TAIL"))
-    private void allayvillage$addGoals(CallbackInfo ci) {
-        // TODO M2: 追加自定义 Goal
-        // GoalSelector selector = ((PathAwareEntity)(Object)this).goalSelector;
-        // selector.add(3, new AllayGoToWorkGoal(...));
     }
 }

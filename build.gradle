@@ -18,7 +18,7 @@ loom {
 	splitEnvironmentSourceSets()
 
 	mods {
-		"tutorialmod" {
+		"livingcity" {
 			sourceSet sourceSets.main
 			sourceSet sourceSets.client
 		}
@@ -31,7 +31,7 @@ loom {
 			name "Data Generation"
 			vmArg "-Dfabric-api.datagen"
 			vmArg "-Dfabric-api.datagen.output-dir=${file("src/main/generated")}"
-			vmArg "-Dfabric-api.datagen.modid=tutorialmod"
+			vmArg "-Dfabric-api.datagen.modid=livingcity"
 			runDir "build/datagen"
 		}
 	}
@@ -42,6 +42,10 @@ sourceSets {
 	main {
 		resources {
 			srcDirs += ['src/main/generated']
+		}
+		java {
+			// 无头模拟核心（纯 Java 17，零 MC 依赖）只读参与编译：单一事实来源，核心目录零改动
+			srcDir file('../03-代码/livingcity-sim/src')
 		}
 	}
 }
@@ -78,3 +82,21 @@ jar {
 		rename { "${it}_${project.base.archivesName.get()}" }
 	}
 }
+
+// 模拟核心回归：纯 Java、零 MC 依赖，秒级。等价于在 livingcity-sim 里手敲 javac + java
+tasks.register('simTest', JavaExec) {
+	group = 'verification'
+	description = '跑 citysim 回归用例（退出码 0 = 全绿）'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'citysim.RegressionTests'
+	// MC 的 runtimeClasspath 很大，不给足内存容易在类加载阶段就 OOM
+	maxHeapSize = '1g'
+	// 不加这两个，Windows 终端里中文用例名会变成乱码
+	jvmArgs '-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8'
+}
+
+// 可选：让 check 顺带跑回归。不需要就删掉这三行
+tasks.named('check') {
+	dependsOn 'simTest'
+}
+
