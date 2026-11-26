@@ -1,0 +1,11 @@
+== 转换报告 ==
+输入: 一酿造台,一床房.bp
+格式: bp（Axiom 容器，DataVersion=3465，区块段=7，头部 Name=一酿造台,一床房 Author=White_MG_King）
+输出: house/brewing_1bed.bp
+尺寸: 16x8x16
+入口: 15,0,10
+床数: 1
+方块: 总 691 / S 659 / D 30 / C 2（C 类保留在清单，运行时放置跳过、完整性账排除）
+许可: CC0（作者: White_MG_King）
+-- 警告 --
+* Axiom 通道丢弃 BlockEntities 2 个 / Entities 0 个（V1 约定：蓝图只含方块，回放无副作用）

@@ -1,0 +1,4 @@
+@id port
+@kind PORT
+@size 4x1x4
+# Offline trade prototype. This blueprint contains no world blocks.

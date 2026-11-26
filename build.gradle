@@ -44,9 +44,16 @@ sourceSets {
 			srcDirs += ['src/main/generated']
 		}
 		java {
-			// 无头模拟核心（纯 Java 17，零 MC 依赖）只读参与编译：单一事实来源，核心目录零改动
-			srcDir file('../03-代码/livingcity-sim/src')
+			// 无头模拟核心（纯 Java 17，零 MC 依赖）直接参与编译，保持单一源码
+			srcDir file('sim/src')
 		}
+	}
+	test {
+		compileClasspath += sourceSets.main.compileClasspath
+	}
+	offline {
+		compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+		runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
 	}
 }
 
@@ -60,6 +67,9 @@ dependencies {
 
 processResources {
 	inputs.property "version", project.version
+	from('tools/city-map.html') {
+		into 'livingcity-web'
+	}
 
 	filesMatching("fabric.mod.json") {
 		expand "version": project.version
@@ -95,8 +105,41 @@ tasks.register('simTest', JavaExec) {
 	jvmArgs '-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8'
 }
 
-// 可选：让 check 顺带跑回归。不需要就删掉这三行
-tasks.named('check') {
-	dependsOn 'simTest'
+tasks.register('ledgerSaveTest', JavaExec) {
+	group = 'verification'
+	dependsOn testClasses
+	classpath = sourceSets.test.runtimeClasspath + sourceSets.main.runtimeClasspath
+	mainClass = 'com.livingcity.data.CityLedgerSaveTest'
 }
 
+tasks.named('check') {
+	dependsOn 'simTest', 'ledgerSaveTest'
+}
+
+
+def offlineAgent = tasks.register('offlineAccessAgent', Jar) {
+    archiveClassifier = 'offline-access'
+    destinationDirectory = layout.buildDirectory.dir('offline')
+    dependsOn offlineClasses
+    from(sourceSets.offline.output) {
+        include 'com/livingcity/offline/NamedMinecraftAgent*.class'
+    }
+    manifest.attributes('Premain-Class': 'com.livingcity.offline.NamedMinecraftAgent')
+}
+
+def offlineMapPort = providers.gradleProperty('offlinePort').map { Integer.parseInt(it) }.getOrElse(8766)
+tasks.register('offlineCity', JavaExec) {
+    dependsOn offlineAgent
+    jvmArgumentProviders.add({
+        ["-javaagent:" + offlineAgent.get().archiveFile.get().asFile.absolutePath]
+    } as CommandLineArgumentProvider)
+    group = 'application'
+    description = 'Launch the local city simulator and map without starting Minecraft'
+    dependsOn offlineClasses
+    classpath = sourceSets.offline.runtimeClasspath
+    workingDir layout.buildDirectory.dir("offline/${offlineMapPort}").get().asFile
+    doFirst { workingDir.mkdirs() }
+    mainClass = 'com.livingcity.offline.OfflineServer'
+    args file('tools/city-map.html').absolutePath, offlineMapPort.toString()
+    jvmArgs '-Dfile.encoding=UTF-8'
+}

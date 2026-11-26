@@ -1,0 +1,8 @@
+== 转换报告 ==
+输入: 90 度城墙拐角.litematic
+格式: litematic（MinecraftDataVersion=3465，区域: Unnamed）
+输出: wall/wall_corner_90.bp
+尺寸: 16x8x16
+床数: 0
+方块: 总 1024 / S 1024 / D 0 / C 0（C 类保留在清单，运行时放置跳过、完整性账排除）
+许可: CC0（作者: White_MG_King）

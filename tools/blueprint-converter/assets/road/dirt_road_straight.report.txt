@@ -1,0 +1,8 @@
+== 转换报告 ==
+输入: 直线土路.litematic
+格式: litematic（MinecraftDataVersion=3465，区域: Unnamed）
+输出: road/dirt_road_straight.bp
+尺寸: 16x1x16
+床数: 0
+方块: 总 256 / S 256 / D 0 / C 0（C 类保留在清单，运行时放置跳过、完整性账排除）
+许可: CC0（作者: White_MG_King）

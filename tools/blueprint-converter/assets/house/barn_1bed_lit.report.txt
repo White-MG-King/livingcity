@@ -1,0 +1,9 @@
+== 转换报告 ==
+输入: 牛棚,一床房.litematic
+格式: litematic（MinecraftDataVersion=3465，区域: Unnamed）
+输出: house/barn_1bed_lit.bp
+尺寸: 16x8x16
+入口: 7,0,0
+床数: 1
+方块: 总 646 / S 616 / D 30 / C 0（C 类保留在清单，运行时放置跳过、完整性账排除）
+许可: CC0（作者: White_MG_King）

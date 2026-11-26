@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "minecraft:map" },
+    { "item": "minecraft:compass" }
+  ],
+  "result": { "item": "livingcity:world_map" }
+}

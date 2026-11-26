@@ -1,0 +1,4 @@
+@id quarry
+@kind QUARRY
+@size 16x1x16
+# Ledger-only production site. No world blocks.

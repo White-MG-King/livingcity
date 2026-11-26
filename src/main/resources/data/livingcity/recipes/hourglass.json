@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["GGG", "XSX", "GGG"],
+  "key": {
+    "G": {"item": "minecraft:gold_nugget"},
+    "X": {"item": "minecraft:glass"},
+    "S": {"item": "minecraft:sand"}
+  },
+  "result": {"item": "livingcity:hourglass"}
+}

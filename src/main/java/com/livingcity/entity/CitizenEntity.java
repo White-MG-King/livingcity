@@ -22,6 +22,9 @@ public class CitizenEntity extends PathAwareEntity {
 
 	/** 物化池 id；-1 = 未绑定（/summon 直出等异常态，不参与映射）。 */
 	private int citizenId = -1;
+	private int cityId = 1;
+	public int getCityId() { return cityId; }
+	public void setCityId(int value) { cityId=value; }
 
 	public CitizenEntity(EntityType<? extends PathAwareEntity> entityType, World world) {
 		super(entityType, world);
@@ -53,12 +56,14 @@ public class CitizenEntity extends PathAwareEntity {
 	@Override
 	public void writeCustomDataToNbt(NbtCompound nbt) {
 		super.writeCustomDataToNbt(nbt);
+		nbt.putInt("cityId",cityId);
 		nbt.putInt(NBT_CITIZEN_ID, this.citizenId);
 	}
 
 	@Override
 	public void readCustomDataFromNbt(NbtCompound nbt) {
 		super.readCustomDataFromNbt(nbt);
+		this.cityId = nbt.contains("cityId") ? nbt.getInt("cityId") : 1;
 		this.citizenId = nbt.contains(NBT_CITIZEN_ID) ? nbt.getInt(NBT_CITIZEN_ID) : -1;
 	}
 }

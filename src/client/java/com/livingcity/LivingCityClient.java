@@ -14,6 +14,9 @@ public class LivingCityClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		// 市民渲染：复用原版村民模型 + 村民贴图（表演层任务单 P0）
 		EntityRendererRegistry.register(LivingCityEntities.CITIZEN, CitizenRenderer::new);
+		com.livingcity.client.CityHandbookScreen.register();
+		com.livingcity.client.CityInspectorScreen.register();
+		com.livingcity.client.ClientWorldMap.register();
 		LivingCityMod.LOGGER.info("[LivingCity] client entrypoint initialized (citizen renderer registered)");
 	}
 }

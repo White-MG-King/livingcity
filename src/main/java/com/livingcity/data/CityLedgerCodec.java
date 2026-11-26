@@ -33,8 +33,8 @@ import java.util.Random;
  */
 public final class CityLedgerCodec {
 
-    /** 当前 schema 版本（第一版 = 1）。 */
-    public static final int SCHEMA_VERSION = 1;
+    /** v3 增加木石库存与产业进度，v2 增加让位工程。 */
+    public static final int SCHEMA_VERSION = 3;
 
     private static final String KEY = "ledger";
     private static final int CHRONICLE_KEEP = 200;
@@ -49,6 +49,12 @@ public final class CityLedgerCodec {
         n.putInt("schemaVersion", SCHEMA_VERSION);
 
         n.putInt("population", city.population);
+        n.putDouble("timber",city.timber);
+        n.putDouble("stone",city.stone);
+        n.putDouble("quarryWork",city.quarryWork);
+        n.putDouble("industryHours",city.totalIndustryHours);
+        n.putBoolean("forestAvailable",city.forestAvailable);
+        n.putBoolean("quarryLocated",city.quarryLocated);
         n.putDouble("foodPoints", city.foodPoints);
         n.putLong("cycleCount", city.cycleCount);
         n.putInt("dayCount", city.dayCount);
@@ -73,6 +79,7 @@ public final class CityLedgerCodec {
         n.put("unlocked", unlocked);
 
         if (city.activeProject != null) n.put("activeProject", writeProject(city.activeProject));
+        if (city.deferredProject != null) n.put("deferredProject", writeProject(city.deferredProject));
         if (city.hardEvent != null) n.put("hardEvent", writeHardEvent(city.hardEvent));
 
         n.put("chronicle", writeChronicle(city.chronicle));
@@ -94,6 +101,12 @@ public final class CityLedgerCodec {
         migrate(n, version);
 
         city.population = n.getInt("population");
+        city.timber=n.getDouble("timber");
+        city.stone=n.getDouble("stone");
+        city.quarryWork=n.getDouble("quarryWork");
+        city.totalIndustryHours=n.getDouble("industryHours");
+        city.forestAvailable=n.getBoolean("forestAvailable");
+        city.quarryLocated=n.getBoolean("quarryLocated");
         city.foodPoints = n.getDouble("foodPoints");
         city.cycleCount = n.getLong("cycleCount");
         city.dayCount = Math.max(1, n.getInt("dayCount"));
@@ -125,6 +138,8 @@ public final class CityLedgerCodec {
 
         city.activeProject = n.contains("activeProject", NbtElement.COMPOUND_TYPE)
                 ? readProject(n.getCompound("activeProject")) : null;
+        city.deferredProject = n.contains("deferredProject", NbtElement.COMPOUND_TYPE)
+                ? readProject(n.getCompound("deferredProject")) : null;
         city.hardEvent = n.contains("hardEvent", NbtElement.COMPOUND_TYPE)
                 ? readHardEvent(n.getCompound("hardEvent")) : null;
 
@@ -157,8 +172,13 @@ public final class CityLedgerCodec {
             throw new IllegalStateException("账本 schema " + from + " 高于本模组支持的 " + SCHEMA_VERSION
                     + "（数据来自更新版本，拒绝加载）");
         }
-        if (from < SCHEMA_VERSION) {
-            // 第一版无历史迁移；以后每加一版在此补 from -> from+1 的迁移步骤
+        if (from == 1) {
+            // v1 无让位工程，其余字段（含随机流）格式完全相同。
+            n.remove("deferredProject");
+            n.putInt("schemaVersion", SCHEMA_VERSION);
+        } else if (from == 2) {
+            n.putInt("schemaVersion", SCHEMA_VERSION); // Absent warehouse fields read as zero.
+        } else if (from < SCHEMA_VERSION) {
             throw new IllegalStateException("缺少账本 schema 迁移函数: v" + from + " -> v" + SCHEMA_VERSION);
         }
     }
@@ -325,6 +345,15 @@ public final class CityLedgerCodec {
     private static void restoreRandom(CityLedger city, byte[] data) {
         if (data.length == 0) return;
         try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(data))) {
+            in.setObjectInputFilter(info -> {
+                if (info.depth() > 2 || info.references() > 8 || info.streamBytes() > 1024) {
+                    return java.io.ObjectInputFilter.Status.REJECTED;
+                }
+                Class<?> type = info.serialClass();
+                if (type == null) return java.io.ObjectInputFilter.Status.UNDECIDED;
+                return type == Random.class ? java.io.ObjectInputFilter.Status.ALLOWED
+                        : java.io.ObjectInputFilter.Status.REJECTED;
+            });
             Object restored = in.readObject();
             if (!(restored instanceof Random random)) return;
             Field field = CityLedger.class.getDeclaredField("random");

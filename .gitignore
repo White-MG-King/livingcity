@@ -30,3 +30,6 @@ _dev-backup-*/
 *.fs-probe.txt
 *.tailnet-probe.txt
 gensources.log
+
+# ---- 蓝图转换器生成的测试输出 ----
+/tools/blueprint-converter/testdata/run/

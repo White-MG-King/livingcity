@@ -1,0 +1,8 @@
+{
+  "required": true,
+  "package": "com.livingcity.client.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "client-livingcity-refmap.json",
+  "client": ["LiveMapMouseMixin", "LiveMapFocusMixin"],
+  "injectors": {"defaultRequire": 1}
+}

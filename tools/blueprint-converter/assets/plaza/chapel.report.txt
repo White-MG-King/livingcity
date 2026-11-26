@@ -1,0 +1,11 @@
+== 转换报告 ==
+输入: 小教堂.bp
+格式: bp（Axiom 容器，DataVersion=3465，区块段=7，头部 Name=小教堂 Author=White_MG_King）
+输出: plaza/chapel.bp
+尺寸: 16x13x16
+入口: 15,0,8
+床数: 0
+方块: 总 558 / S 515 / D 42 / C 1（C 类保留在清单，运行时放置跳过、完整性账排除）
+许可: CC0（作者: White_MG_King）
+-- 警告 --
+* Axiom 通道丢弃 BlockEntities 1 个 / Entities 0 个（V1 约定：蓝图只含方块，回放无副作用）

@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import citysim.CityConfig;
 import citysim.SimHarness;
+import com.livingcity.sensor.CityClock;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
@@ -26,6 +27,20 @@ import net.minecraft.world.PersistentState;
  * 建筑锚点 / 市民住所 / 实体映射三张空间表全在本类，随存档持久化，不进账本 schema。
  */
 public class CityData extends PersistentState {
+	CityRegistry registry;
+	public int id = 1;
+	int nationId;
+	int foundedFrom;
+	public final CityLand land = new CityLand();
+	public final java.util.Queue<com.livingcity.sensor.CitySensorBus.Input> pending = new java.util.ArrayDeque<>();
+
+	public Collection<BlockPos> anchors() { return Collections.unmodifiableCollection(buildingAnchors.values()); }
+
+	@Override public void markDirty() {
+		super.markDirty();
+		if (registry != null) registry.markDirty();
+	}
+
 	public static final String ID = "livingcity_city";
 
 	public static final class Route {
@@ -52,17 +67,43 @@ public class CityData extends PersistentState {
 
 	/** 无头模拟核心单例（S0：挂在 CityData 上，随存档持久化）。 */
 	private transient SimHarness harness;
+	private final CityClock clock = new CityClock();
+
+	public CityClock clock() {
+		return clock;
+	}
+
+	/** 市政厅锚点（建城仪式）：null = 城市尚未举行建城仪式。账本本身隐式存在，此字段只记仪式与空间锚。 */
+	private BlockPos townHallPos;
+
+	public boolean isFounded() {
+		return this.townHallPos != null;
+	}
+
+	public int nationId() { return nationId; }
+	public int foundedFrom() { return foundedFrom; }
+
+	public void foundCity(BlockPos pos) {
+		this.townHallPos = pos.toImmutable();
+		harness().city.config.requireBuildingMaterials = true;
+		harness().city.requireBuildingPlacement(buildingAnchors::containsKey);
+		this.markDirty();
+	}
+
+	/** @return 市政厅锚点；null = 未建城。 */
+	public BlockPos townHallPos() {
+		return this.townHallPos;
+	}
 
 	public SimHarness harness() {
 		if (this.harness == null) {
-			this.harness = new SimHarness(0L, new CityConfig());
+			this.harness = new SimHarness(id == 1 ? 0L : id, new CityConfig());
 		}
 		return this.harness;
 	}
 
 	public static CityData get(MinecraftServer server) {
-		ServerWorld overworld = server.getOverworld();
-		return overworld.getPersistentStateManager().getOrCreate(CityData::fromNbt, CityData::new, ID);
+		return CityRegistry.get(server).byId(1);
 	}
 
 	public static CityData get(ServerWorld world) {
@@ -172,6 +213,12 @@ public class CityData extends PersistentState {
 		return this.buildingAnchors.get(buildingId);
 	}
 
+	void removeBuildingAnchor(int buildingId) {
+		this.buildingAnchors.remove(buildingId);
+		this.citizenHomes.values().removeIf(home -> home == buildingId);
+		this.markDirty();
+	}
+
 	public int anchorCount() {
 		return this.buildingAnchors.size();
 	}
@@ -258,12 +305,28 @@ public class CityData extends PersistentState {
 		this.citizenEntities.forEach((citizenId, uuid) -> citizenEntitiesNbt.putString(Integer.toString(citizenId), uuid.toString()));
 		nbt.put("citizenEntities", citizenEntitiesNbt);
 
+		if (this.townHallPos != null) {
+			nbt.putLong("townHall", this.townHallPos.asLong());
+			nbt.putInt("nationId", nationId);
+			if (foundedFrom != 0) nbt.putInt("foundedFrom", foundedFrom);
+		}
+
 		CityLedgerCodec.write(this.harness().city, nbt);
+		NbtCompound clockNbt = new NbtCompound();
+		clockNbt.putInt("speed", clock.speed());
+		clockNbt.putInt("remainder", clock.remainder());
+		nbt.put("simulationClock", clockNbt);
+		land.write(nbt);
+		net.minecraft.nbt.NbtList queue = new net.minecraft.nbt.NbtList();
+		for (var input : pending) queue.add(input.save());
+		nbt.put("pending",queue);
 		return nbt;
 	}
 
 	public static CityData fromNbt(NbtCompound nbt) {
 		CityData data = new CityData();
+		NbtCompound clockNbt = nbt.getCompound("simulationClock");
+		data.clock.restore(clockNbt.contains("speed") ? clockNbt.getInt("speed") : 1, clockNbt.getInt("remainder"));
 
 		NbtCompound shaftsNbt = nbt.getCompound("shafts");
 		for (String key : shaftsNbt.getKeys()) {
@@ -319,6 +382,13 @@ public class CityData extends PersistentState {
 		}
 
 		CityLedgerCodec.read(data.harness().city, nbt);
+		if (nbt.contains("townHall")) {
+			data.foundCity(BlockPos.fromLong(nbt.getLong("townHall")));
+			data.nationId = nbt.getInt("nationId");
+			data.foundedFrom = nbt.getInt("foundedFrom");
+		}
+		data.land.read(nbt, data);
+		for (var tag : nbt.getList("pending",10)) data.pending.add(com.livingcity.sensor.CitySensorBus.Input.read((NbtCompound)tag));
 		return data;
 	}
 }

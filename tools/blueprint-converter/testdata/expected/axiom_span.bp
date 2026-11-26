@@ -1,0 +1,44 @@
+@id          axiom_span
+@kind        ROAD
+@size        18x1x2
+@origin      bottom-center
+@author      bpconv-test
+@license     CC0
+@beds        0
+# 方块清单：x,y,z 方块id 分类
+0,0,0 minecraft:stone S
+1,0,0 minecraft:stone S
+2,0,0 minecraft:stone S
+3,0,0 minecraft:stone S
+4,0,0 minecraft:stone S
+5,0,0 minecraft:stone S
+6,0,0 minecraft:stone S
+7,0,0 minecraft:stone S
+8,0,0 minecraft:stone S
+9,0,0 minecraft:stone S
+10,0,0 minecraft:stone S
+11,0,0 minecraft:stone S
+12,0,0 minecraft:stone S
+13,0,0 minecraft:stone S
+14,0,0 minecraft:stone S
+15,0,0 minecraft:stone S
+16,0,0 minecraft:stone S
+17,0,0 minecraft:stone S
+0,0,1 minecraft:stone S
+1,0,1 minecraft:stone S
+2,0,1 minecraft:stone S
+3,0,1 minecraft:stone S
+4,0,1 minecraft:stone S
+5,0,1 minecraft:stone S
+6,0,1 minecraft:stone S
+7,0,1 minecraft:stone S
+8,0,1 minecraft:stone S
+9,0,1 minecraft:stone S
+10,0,1 minecraft:stone S
+11,0,1 minecraft:stone S
+12,0,1 minecraft:stone S
+13,0,1 minecraft:stone S
+14,0,1 minecraft:stone S
+15,0,1 minecraft:stone S
+16,0,1 minecraft:stone S
+17,0,1 minecraft:stone S

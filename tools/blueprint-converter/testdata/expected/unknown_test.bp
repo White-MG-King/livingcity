@@ -1,0 +1,18 @@
+@id          unknown_test
+@kind        ROAD
+@size        3x2x3
+@origin      bottom-center
+@author      bpconv-test
+@license     CC0
+@beds        0
+# 方块清单：x,y,z 方块id 分类
+0,0,0 minecraft:stone S
+1,0,0 minecraft:stone S
+2,0,0 minecraft:stone S
+0,0,1 minecraft:stone S
+1,0,1 minecraft:stone S
+2,0,1 minecraft:stone S
+0,0,2 minecraft:stone S
+1,0,2 minecraft:stone S
+2,0,2 minecraft:stone S
+1,1,1 minecraft:beacon S

@@ -1,0 +1,9 @@
+== 转换报告 ==
+输入: 广场-1.litematic
+格式: litematic（MinecraftDataVersion=3465，区域: Unnamed）
+输出: plaza/plaza_1.bp
+尺寸: 64x13x64
+入口: 32,0,63
+床数: 0
+方块: 总 12386 / S 11190 / D 1196 / C 0（C 类保留在清单，运行时放置跳过、完整性账排除）
+许可: CC0（作者: White_MG_King）

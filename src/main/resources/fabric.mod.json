@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"id": "livingcity",
 	"version": "${version}",
-	"name": "万灵之城 Living City",
+	"name": "我的世界盒子",
 	"description": "让手工建造的城市活过来：市民日程、夜间安全契约、电梯垂直交通；并像 WorldBox 那样给悦灵等动物赋予人类智慧（万灵觉醒）。",
 	"authors": [
 		"YourName"
@@ -11,6 +11,10 @@
 	"license": "CC0-1.0",
 	"icon": "assets/livingcity/icon.png",
 	"environment": "*",
+	"mixins": [
+		"livingcity.mixins.json",
+		{"config": "livingcity.client.mixins.json", "environment": "client"}
+	],
 	"entrypoints": {
 		"main": [
 			"com.livingcity.LivingCityMod"

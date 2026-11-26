@@ -15,11 +15,16 @@ import net.minecraft.util.Identifier;
 
 public final class LivingCityBlocks {
 	public static final Block ELEVATOR = new ElevatorBlock(AbstractBlock.Settings.copy(Blocks.LAPIS_BLOCK).strength(3.0F, 6.0F));
+	public static final Block TOWN_HALL = new TownHallBlock(AbstractBlock.Settings.copy(Blocks.STONE_BRICKS).strength(3.5F, 6.0F));
 
 	public static void register() {
 		Registry.register(Registries.BLOCK, new Identifier(LivingCityMod.MOD_ID, "elevator"), ELEVATOR);
 		Registry.register(Registries.ITEM, new Identifier(LivingCityMod.MOD_ID, "elevator"), new BlockItem(ELEVATOR, new Item.Settings()));
 		ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS).register(entries -> entries.add(ELEVATOR));
+
+		Registry.register(Registries.BLOCK, new Identifier(LivingCityMod.MOD_ID, "town_hall"), TOWN_HALL);
+		Registry.register(Registries.ITEM, new Identifier(LivingCityMod.MOD_ID, "town_hall"), new BlockItem(TOWN_HALL, new Item.Settings()));
+		ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(TOWN_HALL));
 	}
 
 	private LivingCityBlocks() {

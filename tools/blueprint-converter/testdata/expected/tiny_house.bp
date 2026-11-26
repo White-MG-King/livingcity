@@ -1,0 +1,22 @@
+@id          tiny_house
+@kind        HOUSE
+@size        3x2x3
+@entrance    1,0,2
+@origin      bottom-center
+@author      bpconv-test
+@license     CC0
+@beds        1
+# 方块清单：x,y,z 方块id 分类
+0,0,0 minecraft:oak_planks S
+1,0,0 minecraft:oak_planks S
+2,0,0 minecraft:oak_planks S
+0,0,1 minecraft:oak_planks S
+1,0,1 minecraft:oak_planks S
+2,0,1 minecraft:oak_planks S
+0,0,2 minecraft:oak_planks S
+1,0,2 minecraft:oak_planks S
+2,0,2 minecraft:oak_planks S
+2,1,0 minecraft:chest C
+1,1,0 minecraft:red_bed[facing=south,part=foot] D
+1,1,1 minecraft:red_bed[facing=south,part=head] D
+0,1,2 minecraft:torch D
