@@ -20,14 +20,15 @@ import java.util.Locale;
 public final class CitySimTicker {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("livingcity-sim");
-    private static final int SITE_BUDGET_MSPT = 45;
-    private static int siteTurn;
+    private static final CityWorkRotation work = new CityWorkRotation();
 
     private CitySimTicker() {
     }
 
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(CitySimTicker::onEndServerTick);
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPING.register(server ->
+                com.livingcity.data.CityRegistry.get(server).construction().close(server.getOverworld()));
     }
 
     private static void onEndServerTick(MinecraftServer server) {
@@ -49,27 +50,50 @@ public final class CitySimTicker {
             var city=cities.get(Math.floorMod(server.getTicks()/10,cities.size()));
             city.land.surveyNext(server.getOverworld(),city);
         }
-        int siteInterval = clock.speed() == 1000 ? 2 : 5;
-        if (server.getTicks() % siteInterval == 0 && server.getTickTime() < SITE_BUDGET_MSPT) {
-            var cities = List.copyOf(registry.cities());
-            var city = cities.get(Math.floorMod(siteTurn++, cities.size()));
+        var cities = List.copyOf(registry.cities());
+        registry.construction().tick(server.getOverworld(), registry, clock.speed() != 0,
+                server.getTickTime() < registry.rules().map().guardMs());
+        if (clock.speed() != 0) {
+            // Discovery has no world writes or chunk tickets. It must keep working even
+            // when every funded order is waiting for its first timber and stone.
+            var city = cities.get(work.nextResource(cities.size()));
+            city.land.tickResources(server.getOverworld(), city);
+        }
+        if (server.getTickTime() < registry.rules().map().guardMs()) {
             var world = server.getOverworld();
-            int budget = registry.rules().construction();
-            // A requested demolition can finish with the economy clock paused.
-            if (!city.land.tickDemolition(world, city, budget) && clock.speed() != 0) {
-                city.land.tickSites(world, city, budget);
+            long deadline = System.nanoTime() + (long) (Math.min(4, registry.rules().map().guardMs() - server.getTickTime()) * 1_000_000);
+            int remaining = registry.rules().construction() * 4;
+            if (clock.speed() != 0) {
+                var city = server.getTicks() % 2 == 0 ? registry.construction().planningCity() : null;
+                if (city == null) city = cities.get(work.nextPlanner(cities.size()));
+                city.land.tickPlanning(world, city, Math.min(deadline, System.nanoTime() + 2_000_000));
+                registry.construction().retainBuild(world, city);
             }
+            for (int checked = 0; checked < Math.max(4, cities.size()) && remaining > 0 && System.nanoTime() < deadline; checked++) {
+                var city = cities.get(work.nextWriter(cities.size()));
+                int slice = Math.min(192, remaining);
+                if (!city.land.tickDemolition(world, city, slice) && clock.speed() != 0 && city.land.hasActiveConstruction()) {
+                    city.land.tickSites(world, city, slice, deadline);
+                }
+                remaining -= slice;
+            }
+        }
+        registry.nations().tickLanding(server.getOverworld(), registry,
+                clock.speed() != 0 && server.getTickTime() < registry.rules().map().guardMs());
+        if (server.getTicks() % 10 == 0 && server.getTickTime() < registry.rules().map().guardMs()) {
+            registry.trade().syncShips(server.getOverworld(), registry.worldCycle());
         }
         if (due) {
             long started = System.nanoTime();
             var world = server.getOverworld();
             registry.advanceWorldCycle();
+            registry.trade().advance(world, registry);
             for (var city : registry.cities()) {
                 advanceCycle(server, city);
                 registry.tickExpansion(world, city);
             }
             registry.stepCampaign(world);
-            registry.nations().advance(world, registry, server.getTickTime() < SITE_BUDGET_MSPT);
+            registry.nations().advance(world, registry, server.getTickTime() < registry.rules().map().guardMs());
             clock.recordCycleCost(System.nanoTime() - started);
         }
         // 高速下每秒投影一次最新实体状态；常速与低倍速仍在原周期边界同步。
@@ -83,9 +107,11 @@ public final class CitySimTicker {
     }
 
     public static String siteStatus(MinecraftServer server, CityData city) {
+        String remote = com.livingcity.data.CityRegistry.get(server).construction().cityStatus(city.id);
+        if (!remote.isEmpty()) return remote + " · " + city.land.siteStatus();
         if (city.harness().city.pendingBuildings() > 0) {
             if (CityData.get(server).clock().speed() == 0) return "城市时钟已暂停";
-            if (server.getTickTime() >= SITE_BUDGET_MSPT) {
+            if (server.getTickTime() >= com.livingcity.data.CityRegistry.get(server).rules().map().guardMs()) {
                 return String.format(Locale.ROOT, "服务器每刻 %.1f 毫秒 · 暂缓施工", server.getTickTime());
             }
         }

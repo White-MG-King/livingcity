@@ -17,6 +17,9 @@ import net.minecraft.util.Identifier;
  * 避免边缘市民实体不同步给客户端。体型取村民同款 0.6×1.95。
  */
 public final class LivingCityEntities {
+    public static final EntityType<TradeShipEntity> TRADE_SHIP = EntityType.Builder
+            .create(TradeShipEntity::new, SpawnGroup.MISC).setDimensions(1.375f, .5625f)
+            .maxTrackingRange(10).trackingTickInterval(3).build("trade_ship");
 
 	public static final EntityType<CitizenEntity> CITIZEN = EntityType.Builder
 			.create(CitizenEntity::new, SpawnGroup.CREATURE)
@@ -29,6 +32,7 @@ public final class LivingCityEntities {
 	}
 
 	public static void register() {
+        Registry.register(Registries.ENTITY_TYPE, new Identifier(LivingCityMod.MOD_ID, "trade_ship"), TRADE_SHIP);
 		Registry.register(Registries.ENTITY_TYPE, new Identifier(LivingCityMod.MOD_ID, "citizen"), CITIZEN);
 		// 复用村民属性表（1.20.1 yarn 下 public static）：移速 0.5 / 跟随范围 48，与氛围步速一致
 		FabricDefaultAttributeRegistry.register(CITIZEN, VillagerEntity.createVillagerAttributes());

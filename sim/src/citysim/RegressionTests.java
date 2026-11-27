@@ -31,6 +31,7 @@ public class RegressionTests {
         testH_materialsAndLegacyPlazas();
         testPlacementHandoff();
         testPortTrade();
+        testPreparedWater();
         testNationExpansion();
         WarRegression.run();
         System.out.println("==================================");
@@ -40,6 +41,17 @@ public class RegressionTests {
             System.exit(1);
         }
         System.out.println("RESULT: ALL GREEN");
+    }
+
+    private static void testPreparedWater() {
+        var left = new Cell(3, 0);
+        var right = new Cell(4, 0);
+        var crossing = new SeaLanes(Set.of(left, right));
+        crossing.prepareComponents();
+        check(crossing.componentsPrepared() && crossing.route(left, right, 2).equals(List.of(left, right)),
+                "J6 预计算水域连通后保留可航路径", "-");
+        check(SeaLanes.localWaterRegions((1 << 3) | (1 << 4) | (1 << 8)).equals(List.of(1 << 3, (1 << 4) | (1 << 8))),
+                "J7 区块水域索引按共边连通，行末不接下一行行首", "-");
     }
 
     static void testNationExpansion() {

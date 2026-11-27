@@ -127,12 +127,19 @@ def offlineAgent = tasks.register('offlineAccessAgent', Jar) {
     manifest.attributes('Premain-Class': 'com.livingcity.offline.NamedMinecraftAgent')
 }
 
+def namedMinecraftAccess = {
+    ["-javaagent:" + offlineAgent.get().archiveFile.get().asFile.absolutePath]
+} as CommandLineArgumentProvider
+
+tasks.named('ledgerSaveTest', JavaExec) {
+    dependsOn offlineAgent
+    jvmArgumentProviders.add(namedMinecraftAccess)
+}
+
 def offlineMapPort = providers.gradleProperty('offlinePort').map { Integer.parseInt(it) }.getOrElse(8766)
 tasks.register('offlineCity', JavaExec) {
     dependsOn offlineAgent
-    jvmArgumentProviders.add({
-        ["-javaagent:" + offlineAgent.get().archiveFile.get().asFile.absolutePath]
-    } as CommandLineArgumentProvider)
+    jvmArgumentProviders.add(namedMinecraftAccess)
     group = 'application'
     description = 'Launch the local city simulator and map without starting Minecraft'
     dependsOn offlineClasses

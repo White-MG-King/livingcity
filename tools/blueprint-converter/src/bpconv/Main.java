@@ -21,7 +21,7 @@ import java.util.TreeMap;
 public final class Main {
 
     private static final Set<String> KINDS = new LinkedHashSet<>(
-            Arrays.asList("HOUSE", "WELL", "PLAZA", "ROAD", "WALL", "GATE"));
+            Arrays.asList("HOUSE", "WELL", "PLAZA", "ROAD", "WALL", "GATE", "PORT"));
     private static final Set<String> LICENSES = new LinkedHashSet<>(
             Arrays.asList("CC0", "CC-BY-4.0"));
 
@@ -41,6 +41,7 @@ public final class Main {
         Path input = null, outdir = Paths.get("."), classesFile = Paths.get("block-classes.txt");
         String kind = null, id = null, author = null, license = null, bedsArg = "auto";
         int[] entrance = null;
+        Integer floorY = null, textFloorY = null;
         boolean force = false;
 
         for (int i = 0; i < args.length; i++) {
@@ -52,6 +53,7 @@ public final class Main {
                 case "--author": author = next(args, ++i, a); break;
                 case "--license": license = next(args, ++i, a); break;
                 case "--entrance": entrance = parseTriple(next(args, ++i, a), a); break;
+                case "--floor-y": floorY = Integer.parseInt(next(args, ++i, a)); break;
                 case "--beds": bedsArg = next(args, ++i, a); break;
                 case "--classes": classesFile = Paths.get(next(args, ++i, a)); break;
                 case "--force": force = true; break;
@@ -115,6 +117,7 @@ public final class Main {
                 } else {
                     TextBpReader.Result r = TextBpReader.read(raw);
                     voxels = r.voxels;
+                    textFloorY = r.floorY;
                     formatNote = "bp（自家文本格式 V1 回环，@id=" + (r.id.isEmpty() ? "-" : r.id) + "）";
                 }
             } else if (name.endsWith(".litematic")) {
@@ -154,6 +157,7 @@ public final class Main {
         List<Voxel> norm = new ArrayList<>(solid.size());
         for (Voxel v : solid) norm.add(new Voxel(v.x - minX, v.y - minY, v.z - minZ, v.id, v.props));
         int sx = maxX - minX + 1, sy = maxY - minY + 1, sz = maxZ - minZ + 1;
+        if (floorY == null && textFloorY != null) floorY = textFloorY - minY;
         // --entrance 语义（2026-11-10 真实素材端到端拍板）：归一化输出坐标系，与 .bp 方块清单
         // 同口径（footprint 原点 0,0,0）。不做源坐标平移——源世界坐标是搭建者站位细节，
         // 用户看蓝图/冒烟产物定的入口就是输出坐标。回归锁定：测试样本源坐标整体偏移。
@@ -200,7 +204,7 @@ public final class Main {
 
         // ---- T4：校验 ----
         Validator val = new Validator();
-        val.validate(kind, sx, sy, sz, norm, entrance, beds);
+        val.validate(kind, sx, sy, sz, norm, entrance, beds, floorY == null ? 0 : floorY);
         val.warnings.addAll(warnings);
         if (!val.errors.isEmpty()) {
             System.err.println("校验失败（" + val.errors.size() + " 项）:");
@@ -212,6 +216,7 @@ public final class Main {
         BlueprintWriter.Meta m = new BlueprintWriter.Meta();
         m.id = id; m.kind = kind; m.author = author; m.license = license;
         m.sx = sx; m.sy = sy; m.sz = sz; m.entrance = entrance; m.beds = beds;
+        m.floorY = floorY;
 
         String bpText = BlueprintWriter.render(m, ordered, orderedClasses);
         String reportText = BlueprintWriter.report(m, input.getFileName().toString(), formatNote,
@@ -257,10 +262,11 @@ public final class Main {
         System.out.println(String.join("\n",
             "bpconv — 蓝图转换器（开源蓝图 → BLUEPRINT-FORMAT V1 文本）",
             "用法: java -jar bpconv.jar <input.litematic|input.nbt|input.schematic|input.bp>",
-            "        -o <outdir> --kind <HOUSE|WELL|PLAZA|ROAD|WALL|GATE> --id <id>",
+            "        -o <outdir> --kind <HOUSE|WELL|PLAZA|ROAD|WALL|GATE|PORT> --id <id>",
             "        --author <来源作者> --license <CC0|CC-BY-4.0>",
-            "        [--entrance x,y,z] [--beds auto|N] [--classes block-classes.txt] [--force]",
+            "        [--entrance x,y,z] [--floor-y N] [--beds auto|N] [--classes block-classes.txt] [--force]",
             "      --entrance 用归一化输出坐标（与 .bp 方块清单同口径，footprint 原点 0,0,0）",
+            "      --floor-y 用归一化高度（最低层为 0，第四层为 3；省略时保留文本蓝图声明或使用 0）",
             "      .bp 输入按文件头自动识别：Axiom 容器（magic）或自家文本格式（回环转写）",
             "退出码: 0 成功 | 1 校验/IO 失败 | 2 许可证门拒绝",
             "输出: <outdir>/<kind小写>/<id>.bp + <id>.report.txt"));

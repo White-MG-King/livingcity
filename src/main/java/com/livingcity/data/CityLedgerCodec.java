@@ -34,7 +34,7 @@ import java.util.Random;
 public final class CityLedgerCodec {
 
     /** v3 增加木石库存与产业进度，v2 增加让位工程。 */
-    public static final int SCHEMA_VERSION = 3;
+    public static final int SCHEMA_VERSION = 4;
 
     private static final String KEY = "ledger";
     private static final int CHRONICLE_KEEP = 200;
@@ -55,6 +55,9 @@ public final class CityLedgerCodec {
         n.putDouble("industryHours",city.totalIndustryHours);
         n.putBoolean("forestAvailable",city.forestAvailable);
         n.putBoolean("quarryLocated",city.quarryLocated);
+        n.putBoolean("portLocated", city.portLocated);
+        n.putDouble("portWork", city.portWork);
+        n.putInt("incomingStone", city.incomingStone);
         n.putDouble("foodPoints", city.foodPoints);
         n.putLong("cycleCount", city.cycleCount);
         n.putInt("dayCount", city.dayCount);
@@ -107,6 +110,9 @@ public final class CityLedgerCodec {
         city.totalIndustryHours=n.getDouble("industryHours");
         city.forestAvailable=n.getBoolean("forestAvailable");
         city.quarryLocated=n.getBoolean("quarryLocated");
+        city.portLocated = n.getBoolean("portLocated");
+        city.portWork = n.getDouble("portWork");
+        city.incomingStone = n.getInt("incomingStone");
         city.foodPoints = n.getDouble("foodPoints");
         city.cycleCount = n.getLong("cycleCount");
         city.dayCount = Math.max(1, n.getInt("dayCount"));
@@ -176,7 +182,7 @@ public final class CityLedgerCodec {
             // v1 无让位工程，其余字段（含随机流）格式完全相同。
             n.remove("deferredProject");
             n.putInt("schemaVersion", SCHEMA_VERSION);
-        } else if (from == 2) {
+        } else if (from == 2 || from == 3) {
             n.putInt("schemaVersion", SCHEMA_VERSION); // Absent warehouse fields read as zero.
         } else if (from < SCHEMA_VERSION) {
             throw new IllegalStateException("缺少账本 schema 迁移函数: v" + from + " -> v" + SCHEMA_VERSION);

@@ -1,5 +1,8 @@
 package com.livingcity.offline;
 
+import citysim.PortTrade;
+import citysim.SeaLanes;
+import citysim.SeaLanes.Cell;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -13,21 +16,33 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public final class OfflineServer {
     private static final Gson JSON = new Gson();
     private static final int FAST = 18_000;
     private static final int MAX_REQUEST_BYTES = 3 * 1024 * 1024;
+    private static final int PREPARED_PORT_PAIRS = 8;
     private static final Set<Integer> SPEEDS = Set.of(0, 1, 5, 10, 60, 1000, FAST);
     private final String expectedOrigin;
     private OfflineWorld world;
     private long terrainVersion;
     private int speed;
     private int fraction;
+    private boolean preparingSea;
+    private final ExecutorService preparation = Executors.newSingleThreadExecutor(task -> {
+        Thread worker = new Thread(task, "LivingCity offline navigation");
+        worker.setDaemon(true);
+        worker.setPriority(Thread.NORM_PRIORITY - 1);
+        return worker;
+    });
 
     private OfflineServer(int port) {
         expectedOrigin = "http://127.0.0.1:" + port;
@@ -56,7 +71,11 @@ public final class OfflineServer {
     }
 
     private synchronized void clock() {
-        if (speed == 0 || world == null || !world.hasCities()) return;
+        if (world == null) return;
+        if (speed == 0 || !world.hasCities()) {
+            prepareSea();
+            return;
+        }
         fraction += speed;
         long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(32);
         while (fraction >= 600 && System.nanoTime() < deadline) {
@@ -64,6 +83,53 @@ public final class OfflineServer {
             fraction -= 600;
         }
         fraction %= 600; // Drop work beyond the time budget instead of accumulating a burst.
+        if (deadline - System.nanoTime() >= TimeUnit.MILLISECONDS.toNanos(12)) prepareSea();
+    }
+
+    private void prepareSea() {
+        if (preparingSea) return;
+        var current = world;
+        var berths = current.berths();
+        if (!current.needsSeaPreparation(berths)) return;
+        var snapshot = List.copyOf(current.samples.values());
+        preparingSea = true;
+        preparation.execute(() -> {
+            try {
+                var prepared = OfflineWorld.indexSea(snapshot);
+                prepared.prepareComponents();
+                prepareRoutes(prepared, berths);
+                synchronized (this) {
+                    if (world == current && current.samples.size() == snapshot.size() && current.berths().equals(berths)) {
+                        current.usePreparedSea(prepared, berths);
+                    }
+                }
+            } finally {
+                synchronized (this) { preparingSea = false; }
+            }
+        });
+    }
+
+    private record PortPair(Cell first, Cell second, int distance) {}
+
+    private static void prepareRoutes(SeaLanes sea, List<Cell> berths) {
+        int limit = PortTrade.MAX_ROUTE_TILES;
+        var pairs = new ArrayList<PortPair>();
+        for (int i = 0; i < berths.size(); i++) {
+            Cell first = berths.get(i);
+            int component = sea.component(first);
+            if (component == 0) continue;
+            for (int j = i + 1; j < berths.size(); j++) {
+                Cell second = berths.get(j);
+                int distance = Math.abs(first.x() - second.x()) + Math.abs(first.z() - second.z());
+                if (distance < limit && component == sea.component(second)) pairs.add(new PortPair(first, second, distance));
+            }
+        }
+        pairs.sort(Comparator.comparingInt(PortPair::distance));
+        for (int i = 0; i < Math.min(pairs.size(), PREPARED_PORT_PAIRS); i++) {
+            var pair = pairs.get(i);
+            sea.route(pair.first(), pair.second(), limit);
+            sea.route(pair.second(), pair.first(), limit);
+        }
     }
 
     private void step() {

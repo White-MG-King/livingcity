@@ -18,7 +18,8 @@ public final class BlueprintWriter {
     public static final class Meta {
         public String id, kind, author, license;
         public int sx, sy, sz;
-        public int[] entrance; // 可为 null（ROAD/WALL/GATE 可省略）
+        public Integer floorY;
+        public int[] entrance; // 可为 null（道路、城防件与待选入口的港口素材）
         public int beds;
     }
 
@@ -28,6 +29,7 @@ public final class BlueprintWriter {
         sb.append(line("@id", m.id));
         sb.append(line("@kind", m.kind));
         sb.append(line("@size", m.sx + "x" + m.sy + "x" + m.sz));
+        if (m.floorY != null) sb.append(line("@floor_y", m.floorY.toString()));
         if (m.entrance != null)
             sb.append(line("@entrance", m.entrance[0] + "," + m.entrance[1] + "," + m.entrance[2]));
         sb.append(line("@origin", "bottom-center"));
@@ -71,6 +73,7 @@ public final class BlueprintWriter {
         if (formatNote != null) sb.append("格式: ").append(formatNote).append('\n');
         sb.append("输出: ").append(m.kind.toLowerCase()).append('/').append(m.id).append(".bp\n");
         sb.append("尺寸: ").append(m.sx).append('x').append(m.sy).append('x').append(m.sz).append('\n');
+        if (m.floorY != null) sb.append("地板高度: ").append(m.floorY).append("（最低层为 0）\n");
         if (m.entrance != null)
             sb.append("入口: ").append(m.entrance[0]).append(',').append(m.entrance[1]).append(',').append(m.entrance[2]).append('\n');
         sb.append("床数: ").append(m.beds).append('\n');

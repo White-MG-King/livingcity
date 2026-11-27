@@ -198,6 +198,7 @@ public final class TestHarness {
                     "codes=" + c1 + "," + c2 + " " + diffHint(got, exp) + " " + log);
         }
 
+        testPortFloor();
         System.out.println("\n==== 结果: " + passed + " 通过 / " + failed + " 失败 ====");
         if (failed > 0) System.exit(1);
     }
@@ -224,6 +225,28 @@ public final class TestHarness {
         if (code != 0) { check(name, false, "code=" + code + " " + log); return; }
         byte[] got = Files.readAllBytes(out.resolve(kind.toLowerCase() + "/" + id + ".bp"));
         check(name, java.util.Arrays.equals(got, exp), diffHint(got, exp) + " " + log);
+    }
+
+    private static void testPortFloor() throws IOException {
+        Path input = RUN.resolve("raised_port.bp");
+        Files.writeString(input, """
+                @floor_y 3
+                0,0,0 minecraft:stone_bricks S
+                1,3,0 minecraft:oak_planks S
+                """);
+        Path out = RUN.resolve("port_floor");
+        var log = new StringBuilder();
+        String[] args = convertArgs(input.toString(), out, "PORT", "raised_port", "CC0", null, false);
+        int result = runQuiet(args, log);
+        Path output = out.resolve("port/raised_port.bp");
+        check("t19 港口保留第 4 层地板及稀疏桩基",
+                result == 0 && Files.readString(output).contains("@floor_y     3"), log.toString());
+
+        var invalid = new ArrayList<>(List.of(convertArgs(input.toString(), out, "PORT", "invalid_floor", "CC0", null, false)));
+        invalid.addAll(List.of("--floor-y", "4"));
+        log.setLength(0);
+        check("t20 --floor-y 覆盖原声明并拒绝越界高度",
+                runQuiet(invalid.toArray(new String[0]), log) == 1 && log.toString().contains("地板高度 4"), log.toString());
     }
 
     static String[] convertArgs(String input, Path outdir, String kind, String id,

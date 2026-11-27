@@ -17,6 +17,7 @@ final class CityRegistryTest {
         legacy.harness().city.population = 19;
         legacy.setBuildingAnchor(3, new BlockPos(-51, 68, 20));
         CityRegistry registry = CityRegistry.read(legacy.writeNbt(new NbtCompound()));
+        check(registry.rules().map().border() == 8 && registry.rules().map().guardMs() == 45, "legacy map settings lost their defaults");
         CityData first = registry.byId(1);
         check(registry.at(hall) == first && first.harness().city.population == 19, "lost legacy city");
         check(registry.owner(-4, 1) == first && registry.owner(2, 4) == null, "invented or lost legacy claim");
@@ -30,6 +31,14 @@ final class CityRegistryTest {
         CitySensorBus.offer(second, new CitySensorBus.Input(CitySensorBus.Input.Type.WINTER_INJECT,4,0,"winter"));
         second.land.hallMissing = true;
         CityRegistry read = CityRegistry.read(registry.writeNbt(new NbtCompound()));
+        var settings = new CityRules.MapSettings(12, 2, 1, 1, 3, 42);
+        check(read.rules().survey().equals(CityRules.SurveySettings.defaults()), "legacy survey defaults missing");
+        var surveySettings = new CityRules.SurveySettings(false, 4, 3);
+        read.rules().setSurvey(surveySettings);
+        check(CityRegistry.read(read.writeNbt(new NbtCompound())).rules().survey().equals(surveySettings),
+                "survey enable switch, slots or workers changed on reload");
+        read.rules().setMap(settings);
+        check(CityRegistry.read(read.writeNbt(new NbtCompound())).rules().map().equals(settings), "map performance settings did not survive reload");
         check(read.byId(1).pending.isEmpty() && read.byId(2).pending.element().idA()==4, "event routed to wrong city");
         check(read.owner(1, 1).id == 1 && read.byId(2).land.hallMissing, "lost claim or missing hall");
         for(CityData city:read.cities()) {

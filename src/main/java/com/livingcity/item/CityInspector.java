@@ -67,6 +67,9 @@ public final class CityInspector extends Item {
         data.putInt("pendingBeds", ledger.pendingBeds());
         data.putInt("pendingBuildings", ledger.pendingBuildings());
         data.putString("siteStatus", com.livingcity.sensor.CitySimTicker.siteStatus(server, city));
+        data.putString("portStatus", city.land.portStatus());
+        data.putString("resourceStatus", ledger.forestAvailable ? "林业已接通 · 采集消耗工时"
+                : city.land.forestScanComplete() ? "采样范围内未找到林地" : "正在搜索林地");
         data.putInt("territory", city.land.chunkCount());
         data.putLong("cycle", ledger.cycleCount);
         data.putDouble("food", ledger.foodPoints);

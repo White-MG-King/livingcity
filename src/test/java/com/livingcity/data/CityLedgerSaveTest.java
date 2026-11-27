@@ -40,6 +40,43 @@ public final class CityLedgerSaveTest {
         System.out.println("NBT PASS: schema 1 migration and both interrupted project states");
         testClock();
         CityRegistryTest.run();
+        com.livingcity.sensor.CityWorkRotationTest.run();
+        testBlueprintFloor();
+        com.livingcity.web.TerrainAtlasTest.run();
+        var tradeLedger = new citysim.CityLedger(9, new citysim.CityConfig());
+        tradeLedger.portLocated = true;
+        tradeLedger.portWork = 7;
+        tradeLedger.incomingStone = 8;
+        var tradeTag = new NbtCompound();
+        CityLedgerCodec.write(tradeLedger, tradeTag);
+        var restoredTradeLedger = new citysim.CityLedger(9, new citysim.CityConfig());
+        CityLedgerCodec.read(restoredTradeLedger, tradeTag);
+        require(restoredTradeLedger.portLocated && restoredTradeLedger.portWork == 7 && restoredTradeLedger.incomingStone == 8,
+                "Port work or reserved shipment was lost on reload");
+    }
+
+    private static void testBlueprintFloor() {
+        net.minecraft.SharedConstants.createGameVersion();
+        net.minecraft.Bootstrap.initialize();
+        var floor = new net.minecraft.util.math.BlockPos(-18, 65, 40);
+        for (var turn : net.minecraft.util.BlockRotation.values()) {
+            var design = com.livingcity.stage.CityBlueprint.design("test_raised_floor", turn);
+            var origin = design.originAtFloor(floor);
+            require(design.floorY() == 3 && origin.getY() == 62, "Fourth layer did not align to the graded surface");
+            require(origin.add(design.entrance()).getY() == 65, "Rotation or floor offset changed road connection height");
+            require(origin.up(design.top()).getY() == 66, "Placement did not keep the relative top height");
+            require(design.cells().stream().anyMatch(part -> origin.add(part.offset()).getY() == 62),
+                    "Foundation block did not retain its position below the floor");
+        }
+        for (String name : com.livingcity.stage.CityBlueprint.TYPES.values()) {
+            if (name.equals("port")) continue;
+            var legacy = com.livingcity.stage.CityBlueprint.design(name, net.minecraft.util.BlockRotation.NONE);
+            require(legacy.floorY() == 0 && legacy.originAtFloor(floor).equals(floor), "Legacy blueprint floor moved: " + name);
+        }
+        var port = com.livingcity.stage.CityBlueprint.design("port", net.minecraft.util.BlockRotation.NONE);
+        require(port.floorY() == 3 && port.width() == 20 && port.depth() == 16 && port.cells().size() == 516,
+                "Real port asset or its fourth-layer floor was lost");
+        System.out.println("BLUEPRINT PASS: raised floor alignment, foundations, rotation and legacy floor defaults");
     }
 
     private static void compareContinuation(SimHarness live) throws IOException {

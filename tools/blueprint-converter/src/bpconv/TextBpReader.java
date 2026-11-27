@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * T1 格式⑤（回环）：自家 BLUEPRINT-FORMAT V1 文本 .bp 再输入。
- * 用途：老蓝图重校验、改 kind/id 转录（CLI 参数为准，@meta 行只作回显不校验）。
+ * 用途：老蓝图重校验、改 kind/id 转录。地板参数可从文本继承，CLI 可覆盖。
  * 行语法：「@键 值」元数据｜「# …」注释｜「x,y,z 方块id[props] S|D|C」方块行（空白分隔三段）。
  * 与 Axiom .bp 同扩展名——Main 按文件头 magic 自动识别（AxiomReader.isAxiom）。
  */
@@ -16,13 +16,17 @@ public final class TextBpReader {
     public static final class Result {
         public final List<Voxel> voxels;
         public final String id; // @id 值（缺省空串，仅回显）
-        Result(List<Voxel> v, String id) { this.voxels = v; this.id = id; }
+        public final Integer floorY;
+        Result(List<Voxel> v, String id, Integer floorY) {
+            this.voxels = v; this.id = id; this.floorY = floorY;
+        }
     }
 
     public static Result read(byte[] raw) throws IOException {
         String text = new String(raw, StandardCharsets.UTF_8);
         List<Voxel> out = new ArrayList<>();
         String id = "";
+        Integer floorY = null;
         int lineNo = 0;
         for (String rawLine : text.split("\n", -1)) {
             lineNo++;
@@ -31,6 +35,12 @@ public final class TextBpReader {
             if (line.startsWith("@")) {
                 String[] kv = line.split("\\s+", 2);
                 if (kv.length == 2 && kv[0].equals("@id")) id = kv[1].trim();
+                if (kv[0].equals("@floor_y")) {
+                    try { floorY = Integer.parseInt(kv.length == 2 ? kv[1] : ""); }
+                    catch (NumberFormatException invalid) {
+                        throw new IOException("自家 .bp 第 " + lineNo + " 行 @floor_y 应为整数", invalid);
+                    }
+                }
                 continue;
             }
             String[] parts = line.split("\\s+");
@@ -57,6 +67,6 @@ public final class TextBpReader {
         }
         if (out.isEmpty())
             throw new IOException("自家 .bp 内没有方块行（文件为空或只有元数据）");
-        return new Result(out, id);
+        return new Result(out, id, floorY);
     }
 }

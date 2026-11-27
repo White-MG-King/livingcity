@@ -4,10 +4,11 @@ import com.livingcity.data.CityBlockChanges.Change;
 import com.livingcity.stage.CityBlueprint;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.FallingBlock;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.Heightmap;
 
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -38,9 +39,9 @@ final class CityTerrain {
         }
     }
 
-    record Survey(CityPlot plot, CityPlot area, List<Long> chunks, int[] heights, BlockState[] surfaces,
+    record Survey(CityPlot plot, CityPlot area, List<Long> chunks, int[] heights, int[] trunkTops, BlockState[] surfaces,
                   boolean[] editable, int baseY) {
-        BlockPos origin() { return new BlockPos(plot.x(), baseY, plot.z()); }
+        BlockPos floorOrigin() { return new BlockPos(plot.x(), baseY, plot.z()); }
     }
 
     private CityTerrain() {}
@@ -56,19 +57,23 @@ final class CityTerrain {
         }
         int size = area.width() * area.depth();
         int[] heights = new int[size];
+        int[] trunkTops = new int[size];
         BlockState[] surfaces = new BlockState[size];
         boolean[] editable = new boolean[size];
         int[] floor = new int[plot.width() * plot.depth()];
         int floors = 0;
+        var prepared = CityRegistry.get(world.getServer()).groundPreparation();
         for (int i = 0; i < size; i++) {
             int x = area.x() + i % area.width(), z = area.z() + i / area.width();
             var chunk = loaded.get(CityData.xzKey(x >> 4, z >> 4));
-            int y = chunk.sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, x & 15, z & 15);
+            var column = prepared.column(chunk, x, z);
+            int y = column.groundY();
             BlockPos pos = new BlockPos(x, y, z);
             BlockState ground = chunk.getBlockState(pos);
             heights[i] = y;
+            trunkTops[i] = column.trunkTop();
             surfaces[i] = ground;
-            editable[i] = natural(ground) && canChange.test(pos);
+            editable[i] = natural(ground) && canChange.test(pos) && (!column.tree() || plot.contains(x, z));
             if (plot.contains(x, z)) {
                 if (!editable[i]) return null;
                 floor[floors++] = y;
@@ -77,13 +82,16 @@ final class CityTerrain {
         Arrays.sort(floor);
         int baseY = floor[floor.length / 2];
         if (baseY - floor[0] > MAX_GRADE || floor[floor.length - 1] - baseY > MAX_GRADE) return null;
-        return new Survey(plot, area, chunks, heights, surfaces, editable, baseY);
+        return new Survey(plot, area, chunks, heights, trunkTops, surfaces, editable, baseY);
     }
 
     static Plan plan(ServerWorld world, Survey survey, CityBlueprint.Design blueprint, List<BlockPos> road) {
         CityPlot plot = survey.plot(), area = survey.area();
         int base = survey.baseY(), size = survey.heights().length;
-        if (world.isOutOfHeightLimit(base - 1) || world.isOutOfHeightLimit(base + blueprint.top())) return null;
+        BlockPos origin = blueprint.originAtFloor(survey.floorOrigin());
+        int aboveFloor = blueprint.top() - blueprint.floorY();
+        if (world.isOutOfHeightLimit(base - 1) || world.isOutOfHeightLimit(origin)
+                || world.isOutOfHeightLimit(origin.up(blueprint.top()))) return null;
         Map<Long, Integer> roadHeights = new HashMap<>();
         for (BlockPos pos : road) roadHeights.put(CityData.xzKey(pos), pos.getY());
         int[] low = new int[size], high = new int[size], desired = new int[size];
@@ -121,9 +129,20 @@ final class CityTerrain {
             if (roadColumn[i]) continue;
             int x = area.x() + i % area.width(), z = area.z() + i / area.width();
             int old = survey.heights()[i], floor = target[i];
+            if (plot.contains(x, z)) {
+                for (int y = old + 1; y <= survey.trunkTops()[i]; y++) {
+                    set(world, changes, new BlockPos(x, y, z), Blocks.AIR.getDefaultState());
+                }
+                for (int y = old + 1; y <= Math.max(floor + aboveFloor, survey.trunkTops()[i] + 2); y++) {
+                    BlockPos leaf = new BlockPos(x, y, z);
+                    if (CitySurface.naturalLeaves(after(world, changes, leaf))) {
+                        set(world, changes, leaf, Blocks.AIR.getDefaultState());
+                    }
+                }
+            }
             if (old != floor && !grade(world, changes, new BlockPos(x, old, z), floor, survey.surfaces()[i])) return null;
             if (plot.contains(x, z)) {
-                for (int y = floor + 1; y <= Math.min(floor + blueprint.top(), floor + 2); y++) {
+                for (int y = floor + 1; y <= Math.min(floor + aboveFloor, floor + 2); y++) {
                     BlockPos plant = new BlockPos(x, y, z);
                     BlockState state = after(world, changes, plant);
                     if (!state.isAir() && CityBlueprint.replaceable(state)) set(world, changes, plant, Blocks.AIR.getDefaultState());
@@ -132,9 +151,10 @@ final class CityTerrain {
         }
         Map<BlockPos, Change> structure = new LinkedHashMap<>();
         for (var cell : blueprint.cells()) {
-            BlockPos pos = survey.origin().add(cell.offset());
+            BlockPos pos = origin.add(cell.offset());
             BlockState state = after(world, changes, pos);
-            if (!CityBlueprint.replaceable(state) && !(cell.offset().getY() == 0 && natural(state))) return null;
+            boolean foundation = cell.offset().getY() <= blueprint.floorY();
+            if (!CityBlueprint.replaceable(state) && !(foundation && natural(state))) return null;
             structure.put(pos, new Change(pos, state, cell.state()));
         }
         return new Plan(survey.chunks(), actualChanges(changes), actualChanges(structure));
@@ -199,22 +219,22 @@ final class CityTerrain {
         if (world.isOutOfHeightLimit(floor) || world.isOutOfHeightLimit(floor - 1)) return false;
         boolean lowering = source.getY() > floor;
         if (lowering) {
-            if (!natural(world.getBlockState(source.withY(floor)))) return false;
+            if (!natural(after(world, changes, source.withY(floor)))) return false;
             for (int y = source.getY(); y > floor; y--) {
                 BlockPos pos = source.withY(y);
-                BlockState state = world.getBlockState(pos);
+                BlockState state = after(world, changes, pos);
                 if (!natural(state) && !CityBlueprint.replaceable(state)) return false;
                 set(world, changes, pos, Blocks.AIR.getDefaultState());
             }
         } else {
             for (int y = source.getY() + 1; y <= floor; y++) {
                 BlockPos pos = source.withY(y);
-                if (!CityBlueprint.replaceable(world.getBlockState(pos))) return false;
+                if (!CityBlueprint.replaceable(after(world, changes, pos))) return false;
                 set(world, changes, pos, Blocks.DIRT.getDefaultState());
             }
         }
         // Skip gravity blocks as fill caps so a shaping pass cannot start a collapse.
-        BlockState cover = surface.isOf(Blocks.SAND) || surface.isOf(Blocks.GRAVEL) ? Blocks.DIRT.getDefaultState() : surface;
+        BlockState cover = surface.getBlock() instanceof FallingBlock ? Blocks.DIRT.getDefaultState() : surface;
         set(world, changes, source.withY(floor), cover);
         return true;
     }
@@ -230,8 +250,11 @@ final class CityTerrain {
     }
 
     static boolean natural(BlockState state) {
-        return state.isOf(Blocks.GRASS_BLOCK) || state.isOf(Blocks.DIRT) || state.isOf(Blocks.COARSE_DIRT)
-                || state.isOf(Blocks.SAND) || state.isOf(Blocks.STONE) || state.isOf(Blocks.PODZOL)
-                || state.isOf(Blocks.GRAVEL) || state.isOf(Blocks.ANDESITE) || state.isOf(Blocks.DIORITE) || state.isOf(Blocks.GRANITE);
+        return state.getFluidState().isEmpty() && (state.isIn(BlockTags.DIRT) || state.isIn(BlockTags.SAND)
+                || state.isIn(BlockTags.BASE_STONE_OVERWORLD) || state.isOf(Blocks.GRASS_BLOCK)
+                || state.isOf(Blocks.DIRT) || state.isOf(Blocks.COARSE_DIRT) || state.isOf(Blocks.PODZOL)
+                || state.isOf(Blocks.GRAVEL) || state.isOf(Blocks.TERRACOTTA) || state.isOf(Blocks.SNOW_BLOCK)
+                || state.isOf(Blocks.SAND) || state.isOf(Blocks.STONE) || state.isOf(Blocks.ANDESITE)
+                || state.isOf(Blocks.DIORITE) || state.isOf(Blocks.GRANITE));
     }
 }

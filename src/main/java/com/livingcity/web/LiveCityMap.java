@@ -6,6 +6,8 @@ import com.google.gson.JsonParser;
 import com.livingcity.LivingCityMod;
 import com.livingcity.data.CityData;
 import com.livingcity.data.CityMapSnapshot;
+import com.livingcity.data.CityRegistry;
+import com.livingcity.data.CityRules.MapSettings;
 import com.livingcity.sensor.CitySimTicker;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -17,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -28,17 +29,18 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
+import java.util.regex.Pattern;
 
 /** Loopback transport for the host's current integrated server, with no separate simulation. */
 public final class LiveCityMap {
     private static final Gson JSON = new Gson();
     private static final long ACTIVE_FOR = Duration.ofSeconds(15).toNanos();
     private static final long SNAPSHOT_INTERVAL = Duration.ofMillis(750).toNanos();
-    private static final long TERRAIN_INTERVAL = Duration.ofSeconds(3).toNanos();
     private static final int MAX_ACTION_BYTES = 512;
+    private static final Pattern VIEW_QUERY = Pattern.compile("x=(-?[0-9]{1,7})&z=(-?[0-9]{1,7})&w=([0-9]{1,4})&h=([0-9]{1,4})&step=([0-9]{1,6})");
+    private static final Pattern TILE_QUERY = Pattern.compile("x=(-?[0-9]{1,7})&z=(-?[0-9]{1,7})&step=([0-9]{1,6})&v=([0-9a-f-]{36})");
+    private static final Pattern POINT_QUERY = Pattern.compile("x=(-?[0-9]{1,8})&z=(-?[0-9]{1,8})&step=([0-9]{1,6})");
     private static volatile LiveCityMap opened;
-
-    private record Terrain(long version, List<CityMapSnapshot.Surface> samples) {}
 
     private static final class HttpProblem extends RuntimeException {
         private final int code;
@@ -59,16 +61,15 @@ public final class LiveCityMap {
     private final String token = UUID.randomUUID().toString();
     private final byte[] page;
     private volatile long lastActivity;
-    private volatile Terrain terrain = new Terrain(0, List.of());
+    private final CityMapTerrain mapTerrain;
     private CityMapSnapshot.State snapshot;
     private long snapshotAt;
-    private long terrainAt;
-    private boolean sampledTerrain;
 
     private LiveCityMap(MinecraftServer game, UUID host, BooleanSupplier gamePaused) throws IOException {
         this.game = game;
         this.host = host;
         this.gamePaused = gamePaused;
+        mapTerrain = CityMapTerrain.get(game);
         try (var resource = LiveCityMap.class.getResourceAsStream("/livingcity-web/city-map.html")) {
             if (resource == null) throw new IOException("Missing bundled city map");
             page = resource.readAllBytes();
@@ -76,7 +77,7 @@ public final class LiveCityMap {
         http = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 8);
         authority = "127.0.0.1:" + http.getAddress().getPort();
         origin = "http://" + authority;
-        workers = Executors.newFixedThreadPool(2, task -> {
+        workers = Executors.newFixedThreadPool(4, task -> {
             Thread worker = new Thread(task, "LivingCity map HTTP");
             worker.setDaemon(true);
             return worker;
@@ -140,9 +141,35 @@ public final class LiveCityMap {
                         requireMethod(exchange, "GET");
                         response = onServer(() -> state(false));
                     }
-                    case "/api/terrain" -> {
+                    case "/api/map/status" -> {
                         requireMethod(exchange, "GET");
-                        response = terrain;
+                        response = mapTerrain.status(0, 0);
+                    }
+                    case "/api/map/view" -> {
+                        requireMethod(exchange, "GET");
+                        response = terrainView(exchange.getRequestURI().getRawQuery());
+                    }
+                    case "/api/map/point" -> {
+                        requireMethod(exchange, "GET");
+                        var query = POINT_QUERY.matcher(query(exchange));
+                        if (!query.matches()) throw new HttpProblem(400, "坐标无效。");
+                        int x = Integer.parseInt(query.group(1)), z = Integer.parseInt(query.group(2));
+                        if (Math.abs(x) >= TerrainAtlas.WORLD_LIMIT * 16 || Math.abs(z) >= TerrainAtlas.WORLD_LIMIT * 16) {
+                            throw new HttpProblem(400, "坐标超出边界。");
+                        }
+                        response = mapTerrain.point(x, z, step(query.group(3)));
+                    }
+                    case "/api/map/tile" -> {
+                        requireMethod(exchange, "GET");
+                        var query = TILE_QUERY.matcher(query(exchange));
+                        if (!query.matches()) throw new HttpProblem(400, "瓦片坐标无效。");
+                        var key = new TerrainAtlas.Key(Integer.parseInt(query.group(1)), Integer.parseInt(query.group(2)), step(query.group(3)));
+                        byte[] png = mapTerrain.png(key, query.group(4));
+                        if (png == null) throw new HttpProblem(404, "瓦片正在更新。");
+                        exchange.getResponseHeaders().set("Content-Type", "image/png");
+                        exchange.sendResponseHeaders(200, png.length);
+                        exchange.getResponseBody().write(png);
+                        return;
                     }
                     case "/api/action" -> {
                         requireMethod(exchange, "POST");
@@ -165,6 +192,32 @@ public final class LiveCityMap {
         if (!method.equals(exchange.getRequestMethod())) throw new HttpProblem(405, "请求方式不受支持。");
     }
 
+    private static String query(HttpExchange exchange) {
+        String raw = exchange.getRequestURI().getRawQuery();
+        return raw == null ? "" : raw;
+    }
+
+    private static int step(String value) {
+        int step = Integer.parseInt(value);
+        if (step < 1 || step > TerrainAtlas.MAX_STEP || Integer.bitCount(step) != 1) {
+            throw new HttpProblem(400, "地图采样精度无效。");
+        }
+        return step;
+    }
+
+    private CityMapTerrain.View terrainView(String query) {
+        var fields = VIEW_QUERY.matcher(query == null ? "" : query);
+        if (!fields.matches()) throw new HttpProblem(400, "地图范围无效。");
+        int x = Integer.parseInt(fields.group(1)), z = Integer.parseInt(fields.group(2));
+        int width = Integer.parseInt(fields.group(3)), height = Integer.parseInt(fields.group(4));
+        int step = step(fields.group(5));
+        if (width < 1 || width > 1024 || height < 1 || height > 1024 || (long) width * height > 16384
+                || Math.abs(x) > TerrainAtlas.WORLD_LIMIT || Math.abs(z) > TerrainAtlas.WORLD_LIMIT) {
+            throw new HttpProblem(400, "地图范围超出边界。");
+        }
+        return mapTerrain.view(x, z, width, height, step);
+    }
+
     private static JsonObject readCommand(HttpExchange exchange) throws IOException {
         byte[] payload = exchange.getRequestBody().readNBytes(MAX_ACTION_BYTES + 1);
         if (payload.length > MAX_ACTION_BYTES) throw new HttpProblem(413, "请求太长。");
@@ -184,16 +237,9 @@ public final class LiveCityMap {
     private CityMapSnapshot.State state(boolean refresh) {
         var player = player();
         long now = System.nanoTime();
-        if (!sampledTerrain || now - terrainAt >= TERRAIN_INTERVAL) {
-            var ground = CityMapSnapshot.terrain(game, player);
-            if (!ground.equals(terrain.samples())) terrain = new Terrain(terrain.version() + 1, ground);
-            terrainAt = now;
-            sampledTerrain = true;
-            refresh = true;
-        }
         boolean paused = gamePaused.getAsBoolean();
         if (refresh || snapshot == null || now - snapshotAt >= SNAPSHOT_INTERVAL || snapshot.gamePaused() != paused) {
-            snapshot = CityMapSnapshot.capture(game, player, paused, terrain.version());
+            snapshot = CityMapSnapshot.capture(game, player, paused);
             snapshotAt = now;
         }
         return snapshot;
@@ -212,6 +258,30 @@ public final class LiveCityMap {
         }
         CityData root = CityData.get(game);
         switch (action) {
+            case "surveySettings" -> {
+                try {
+                    var registry = CityRegistry.get(game);
+                    registry.rules().setSurvey(new com.livingcity.data.CityRules.SurveySettings(command.get("enabled").getAsBoolean(),
+                            integer(command, "slots"), integer(command, "workers")));
+                    registry.markDirty();
+                } catch (RuntimeException invalid) { throw new HttpProblem(400, "现场并发和初筛线程须为 1～4。"); }
+            }
+            case "mapSettings" -> {
+                try {
+                    var settings = new MapSettings(integer(command, "border"), integer(command, "radius"), integer(command, "workers"),
+                            integer(command, "seedWorkers"), integer(command, "budgetMs"), integer(command, "guardMs"));
+                    var registry = CityRegistry.get(game);
+                    registry.rules().setMap(settings);
+                    registry.markDirty();
+                    mapTerrain.configure(settings);
+                } catch (RuntimeException invalid) {
+                    throw new HttpProblem(400, "地图设置超出范围，种子线程须小于或等于地图总线程。");
+                }
+            }
+            case "mapImport" -> {
+                if (!mapTerrain.startImport(player().getChunkPos())) throw new HttpProblem(409, "旧档补绘正在进行。");
+            }
+            case "mapCancel" -> mapTerrain.cancelImport();
             case "speed" -> {
                 if (!CitySimTicker.setSpeed(root, speed)) throw new HttpProblem(400, "请选择 0、1、5、10 或 1000 倍速。");
             }
@@ -237,6 +307,10 @@ public final class LiveCityMap {
             default -> throw new HttpProblem(400, "未知的实时地图操作。");
         }
         return state(true);
+    }
+
+    private static int integer(JsonObject body, String field) {
+        return Integer.parseInt(body.get(field).getAsString());
     }
 
     private <T> T onServer(Callable<T> operation) {

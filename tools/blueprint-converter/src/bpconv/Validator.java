@@ -18,7 +18,7 @@ public final class Validator {
     public final List<String> warnings = new ArrayList<>();
 
     public void validate(String kind, int sx, int sy, int sz,
-                         List<Voxel> voxels, int[] entrance, int beds) {
+                         List<Voxel> voxels, int[] entrance, int beds, int floorY) {
         // V4：footprint 为矩形包围盒（尺寸由体素范围算出，天然成立——断言非空与包围盒一致）
         if (voxels.isEmpty()) {
             errors.add("V4: 蓝图无有效方块");
@@ -32,19 +32,7 @@ public final class Validator {
             errors.add("V4: 包围盒断言失败 size=" + sx + "x" + sy + "x" + sz
                     + " 但体素范围=" + (maxX + 1) + "x" + (maxY + 1) + "x" + (maxZ + 1));
 
-        // V1：y=0 层完整——footprint 内每列在 y=0 必须有方块（BLUEPRINT-FORMAT §3 规则 2）
-        Set<Long> floor = new HashSet<>();
-        for (Voxel v : voxels)
-            if (v.y == 0) floor.add(((long) v.x << 32) | (v.z & 0xFFFFFFFFL));
-        List<String> holes = new ArrayList<>();
-        for (int x = 0; x < sx; x++)
-            for (int z = 0; z < sz; z++)
-                if (!floor.contains(((long) x << 32) | (z & 0xFFFFFFFFL)))
-                    holes.add(x + ",0," + z);
-        if (!holes.isEmpty()) {
-            String sample = String.join(" ", holes.subList(0, Math.min(8, holes.size())));
-            errors.add("V1: y=0 地基层不完整，缺 " + holes.size() + " 列（示例: " + sample + "）");
-        }
+        validateFloor(kind, sx, sy, sz, floorY, voxels);
 
         // 入口必填性 + V2：入口落在 footprint 边缘
         boolean entranceRequired = kind.equals("HOUSE") || kind.equals("WELL") || kind.equals("PLAZA");
@@ -71,5 +59,28 @@ public final class Validator {
                     + "×" + SOFT_FOOTPRINT + "——占地越大挖填越贵，确认是有意的");
         if (sy > SOFT_HEIGHT)
             warnings.add("V5(软): 高度 " + sy + " 超过建议值 " + SOFT_HEIGHT);
+    }
+
+    private void validateFloor(String kind, int sx, int sy, int sz, int floorY, List<Voxel> voxels) {
+        if (floorY < 0 || floorY >= sy) {
+            errors.add("V1: 地板高度 " + floorY + " 须在 0 到 " + (sy - 1) + " 之间");
+            return;
+        }
+        Set<Long> floor = new HashSet<>();
+        for (Voxel v : voxels)
+            if (v.y == floorY) floor.add(((long) v.x << 32) | (v.z & 0xFFFFFFFFL));
+        if (kind.equals("PORT")) {
+            if (floor.isEmpty()) errors.add("V1: 港口地板层须至少包含一个方块");
+            return;
+        }
+        List<String> holes = new ArrayList<>();
+        for (int x = 0; x < sx; x++)
+            for (int z = 0; z < sz; z++)
+                if (!floor.contains(((long) x << 32) | (z & 0xFFFFFFFFL)))
+                    holes.add(x + "," + floorY + "," + z);
+        if (!holes.isEmpty()) {
+            String sample = String.join(" ", holes.subList(0, Math.min(8, holes.size())));
+            errors.add("V1: y=" + floorY + " 地基层不完整，缺 " + holes.size() + " 列（示例: " + sample + "）");
+        }
     }
 }

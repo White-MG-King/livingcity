@@ -26,7 +26,7 @@ public final class CityHandbook extends Item {
     public static final Identifier VIEW = new Identifier(LivingCityMod.MOD_ID, "handbook_view");
     public static final Identifier ACT = new Identifier(LivingCityMod.MOD_ID, "handbook_act");
     public enum Action { REFRESH, UNLIMITED, TERRITORY, ENTITIES, CONSTRUCTION, PAUSE, STEP, SPEED, TIMED_EXPANSION,
-        AUTO_ADMISSIONS, AUTO_COLONIZATION }
+        AUTO_ADMISSIONS, AUTO_COLONIZATION, SURVEY_ENABLED, SURVEY_SLOTS, SURVEY_WORKERS }
 
     private CityHandbook() { super(new Settings().maxCount(1)); }
 
@@ -57,6 +57,12 @@ public final class CityHandbook extends Item {
                         case TERRITORY -> rules.nextTerritory();
                         case ENTITIES -> rules.nextEntities();
                         case CONSTRUCTION -> rules.nextConstruction();
+                        case SURVEY_ENABLED -> rules.setSurvey(new com.livingcity.data.CityRules.SurveySettings(
+                                !rules.survey().enabled(), rules.survey().slots(), rules.survey().workers()));
+                        case SURVEY_SLOTS -> rules.setSurvey(new com.livingcity.data.CityRules.SurveySettings(
+                                rules.survey().enabled(), rules.survey().slots() % 4 + 1, rules.survey().workers()));
+                        case SURVEY_WORKERS -> rules.setSurvey(new com.livingcity.data.CityRules.SurveySettings(
+                                rules.survey().enabled(), rules.survey().slots(), rules.survey().workers() % 4 + 1));
                         case PAUSE -> CitySimTicker.setSpeed(data, clock.speed() == 0 ? 1 : 0);
                         case STEP -> clock.requestStep();
                         case SPEED -> CitySimTicker.setSpeed(data, clock.nextSpeed());
@@ -97,6 +103,7 @@ public final class CityHandbook extends Item {
         var registry = CityRegistry.get(server);
         var city = registry.at(player.getBlockPos());
         NbtCompound view = registry.rules().write();
+        view.put("siteSurvey", registry.construction().status(server.getOverworld(), registry).write());
         view.putBoolean("editable", canEdit(player));
         view.putInt("speed", registry.byId(1).clock().speed());
         view.putDouble("effective", registry.byId(1).clock().effectiveSpeed());

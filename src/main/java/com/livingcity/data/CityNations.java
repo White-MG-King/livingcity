@@ -8,6 +8,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkPos;
@@ -44,6 +45,10 @@ public final class CityNations {
     private final Set<Long> reserved = new HashSet<>();
     private int lastSource;
     private int lastLanding;
+    private static final ChunkTicketType<ChunkPos> LANDING_TICKET = ChunkTicketType.create(
+            "livingcity_colony_survey", java.util.Comparator.comparingLong(ChunkPos::toLong), 200);
+    private ChunkPos landingChunk;
+    private int landingNation, landingSince, retryLandingAt;
 
     void registerIndependent(CityData city) {
         city.nationId = city.id;
@@ -128,17 +133,47 @@ public final class CityNations {
     public void advance(ServerWorld world, CityRegistry registry, boolean hasTickBudget) {
         if (!hasTickBudget) return;
         long cycle = registry.worldCycle();
-        if (!expeditions.isEmpty() && cycle % 2 == 0) {
-            var next = expeditions.higherEntry(lastLanding);
-            if (next == null) next = expeditions.firstEntry();
-            lastLanding = next.getKey();
-            if (next.getValue().arrival() <= cycle) tryLand(world, registry, next.getValue());
-        }
         if (registry.rules().automaticColonization() && cycle % NationExpansion.PLANNING_INTERVAL == 0) {
             CityData source = registry.nextCity(lastSource);
             lastSource = source.id;
             dispatch(world, registry, source);
         }
+    }
+
+    /** One short-lived destination ticket per world. Chunk generation stays asynchronous. */
+    public void tickLanding(ServerWorld world, CityRegistry registry, boolean allowed) {
+        int tick = world.getServer().getTicks();
+        if (landingChunk != null) {
+            Expedition team = expeditions.get(landingNation);
+            if (!allowed || team == null || team.target() != CityData.xzKey(landingChunk.x, landingChunk.z) || tick - landingSince > 600) {
+                world.getChunkManager().removeTicket(LANDING_TICKET, landingChunk, 2, landingChunk);
+                landingChunk = null;
+                retryLandingAt = tick + 20;
+                return;
+            }
+            if (tick % 40 == 0) world.getChunkManager().addTicket(LANDING_TICKET, landingChunk, 2, landingChunk);
+            tryLand(world, registry, team);
+            if (!expeditions.containsKey(landingNation)) {
+                world.getChunkManager().removeTicket(LANDING_TICKET, landingChunk, 2, landingChunk);
+                landingChunk = null;
+            }
+            return;
+        }
+        if (!allowed || expeditions.isEmpty() || tick < retryLandingAt) return;
+        var next = expeditions.higherEntry(lastLanding);
+        if (next == null) next = expeditions.firstEntry();
+        lastLanding = next.getKey();
+        Expedition team = next.getValue();
+        if (team.arrival() > registry.worldCycle()) return;
+        var coordinate = new ChunkPos(CityData.xOf(team.target()), CityData.zOf(team.target()));
+        if (registry.owner(coordinate.x, coordinate.z) != null || !world.getWorldBorder().contains(coordinate)) {
+            returnHome(registry, team, "拓殖用地已失效");
+            return;
+        }
+        landingChunk = coordinate;
+        landingNation = team.nation();
+        landingSince = tick;
+        world.getChunkManager().addTicket(LANDING_TICKET, coordinate, 2, coordinate);
     }
 
     public Dispatch dispatch(ServerWorld world, CityRegistry registry, CityData source) {

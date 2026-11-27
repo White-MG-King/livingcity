@@ -8,6 +8,7 @@ package citysim;
 public enum BuildingKind {
     HOUSE("住宅"),
     WELL("水井"),
+    PORT("港口"),
     PLAZA("广场"),
     ROAD("道路"),   // 占位：特殊建筑类型进账本（缺口对照 #8 建议，未裁决）
     WALL("城墙");   // 占位：M3 事件系统（袭击）接入
@@ -32,6 +33,7 @@ public enum BuildingKind {
         switch (this) {
             case HOUSE: return c.houseBuildHours;
             case WELL: return c.wellBuildHours;
+            case PORT: return CityLedger.PORT_HOURS;
             case PLAZA: return c.plazaBuildHours;
             default: return Double.POSITIVE_INFINITY; // 占位类型不可建造
         }

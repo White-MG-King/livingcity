@@ -14,11 +14,14 @@ import java.util.*;
 
 public final class CityBlueprint {
     public record Cell(BlockPos offset, BlockState state) {}
-    public record Design(List<Cell> cells, BlockPos entrance, Direction facing, int width, int depth, int top) {}
+    public record Design(List<Cell> cells, BlockPos entrance, Direction facing, int width, int depth, int top, int floorY) {
+        public BlockPos originAtFloor(BlockPos floor) { return floor.down(floorY); }
+    }
     private static final Map<String,Design> cache = new HashMap<>();
     private static final Map<String,EnumMap<BlockRotation,Design>> rotations = new HashMap<>();
     public static final Map<citysim.BuildingKind,String> TYPES=Map.of(
-            citysim.BuildingKind.HOUSE,"house_4bed_compact",citysim.BuildingKind.WELL,"well",citysim.BuildingKind.PLAZA,"chapel");
+            citysim.BuildingKind.HOUSE,"house_4bed_compact",citysim.BuildingKind.WELL,"well",citysim.BuildingKind.PLAZA,"chapel",
+            citysim.BuildingKind.PORT,"port");
 
     public static List<Cell> cells(String name) {
         return design(name, BlockRotation.NONE).cells();
@@ -36,7 +39,7 @@ public final class CityBlueprint {
         return new Design(base.cells().stream().map(cell -> new Cell(
                 rotate(cell.offset(), base.width(), base.depth(), turn), cell.state().rotate(turn))).toList(),
                 rotate(base.entrance(), base.width(), base.depth(), turn), turn.rotate(base.facing()),
-                quarterTurn ? base.depth() : base.width(), quarterTurn ? base.width() : base.depth(), base.top());
+                quarterTurn ? base.depth() : base.width(), quarterTurn ? base.width() : base.depth(), base.top(), base.floorY());
     }
 
     private static BlockPos rotate(BlockPos p, int width, int depth, BlockRotation turn) {
@@ -51,7 +54,7 @@ public final class CityBlueprint {
     private static Design read(String name) {
         List<Cell> loaded = new ArrayList<>();
         BlockPos entrance = BlockPos.ORIGIN;
-        int top = 0, width = 0, depth = 0, height = 0;
+        int top = 0, width = 0, depth = 0, height = 0, floorY = 0;
         String path="/data/livingcity/blueprints/"+name+".bp";
         try(var reader=new BufferedReader(new InputStreamReader(
                 Objects.requireNonNull(CityBlueprint.class.getResourceAsStream(path)),StandardCharsets.UTF_8))) {
@@ -66,6 +69,10 @@ public final class CityBlueprint {
                 }
                 if (line.startsWith("@entrance")) {
                     entrance = position(line.split("\\s+")[1]);
+                    continue;
+                }
+                if (line.startsWith("@floor_y")) {
+                    floorY = Integer.parseInt(line.split("\\s+")[1]);
                     continue;
                 }
                 if(line.isBlank() || !Character.isDigit(line.charAt(0))) continue;
@@ -84,13 +91,16 @@ public final class CityBlueprint {
                 || entrance.getZ() < 0 || entrance.getZ() >= depth || entrance.getY() < 0 || entrance.getY() >= height) {
             throw new IllegalStateException("Invalid blueprint dimensions or entrance: " + name);
         }
+        if (floorY < 0 || floorY >= height) {
+            throw new IllegalStateException("Blueprint floor must lie within the declared height: " + name);
+        }
         Direction facing = entrance.getX() == width - 1 ? Direction.EAST : entrance.getX() == 0 ? Direction.WEST
                 : entrance.getZ() == depth - 1 ? Direction.SOUTH : Direction.NORTH;
         if (!loaded.isEmpty() && entrance.getX() != 0 && entrance.getX() != width - 1
                 && entrance.getZ() != 0 && entrance.getZ() != depth - 1) {
             throw new IllegalStateException("Blueprint entrance must lie on the edge: " + name);
         }
-        return new Design(List.copyOf(loaded), entrance, facing, width, depth, top);
+        return new Design(List.copyOf(loaded), entrance, facing, width, depth, top, floorY);
     }
 
     private static BlockPos position(String coordinates) {

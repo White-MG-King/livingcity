@@ -1,0 +1,13 @@
+@id test_raised_floor
+@kind HOUSE
+@size 2x5x3
+@floor_y 3
+@entrance 1,3,1
+0,0,0 minecraft:stone_bricks S
+0,3,0 minecraft:oak_planks S
+0,3,1 minecraft:oak_planks S
+0,3,2 minecraft:oak_planks S
+1,3,0 minecraft:oak_planks S
+1,3,1 minecraft:oak_planks S
+1,3,2 minecraft:oak_planks S
+0,4,0 minecraft:oak_log S

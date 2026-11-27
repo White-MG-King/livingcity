@@ -51,7 +51,7 @@ public final class CityHandbookScreen extends Screen {
     protected void init() {
         left = (width - WIDTH) / 2;
         top = (height - 222) / 2;
-        String[] tabs = {"rules", "performance", "debug", "nation"};
+        String[] tabs = {"rules", "performance", "debug", "nation", "survey"};
         int tabWidth = (WIDTH - 24) / tabs.length;
         for (int i = 0; i < tabs.length; i++) {
             int selected = i;
@@ -83,10 +83,17 @@ public final class CityHandbookScreen extends Screen {
             step.active &= paused;
             action(label("speed", view.getInt("speed"), String.format(Locale.ROOT, "%.1f", view.getDouble("effective"))),
                     107, Action.SPEED);
-        } else {
+        } else if (tab == 3) {
             var colonization = action(label("auto_colonization", label(view.getBoolean("automaticColonization") ? "on" : "off")),
                     60, Action.AUTO_COLONIZATION);
             colonization.setTooltip(Tooltip.of(label("auto_colonization_help")));
+        } else {
+            var survey = view.getCompound("siteSurvey");
+            action(label("survey_enabled", label(survey.getBoolean("enabled") ? "on" : "off")), 59, Action.SURVEY_ENABLED);
+            action(label("survey_slots", survey.getInt("slots")), 82, Action.SURVEY_SLOTS)
+                    .setTooltip(Tooltip.of(label("survey_slots_help")));
+            action(label("survey_workers", survey.getInt("workers")), 105, Action.SURVEY_WORKERS)
+                    .setTooltip(Tooltip.of(label("survey_workers_help")));
         }
         addDrawableChild(ButtonWidget.builder(label("refresh"), ignored -> send(Action.REFRESH))
                 .dimensions(left + 12, top + 194, 135, 20).build());
@@ -111,7 +118,7 @@ public final class CityHandbookScreen extends Screen {
     @Override public boolean shouldPause() { return false; }
 
     @Override public void tick() {
-        if ((tab == 2 || tab == 3) && ++ticks % 20 == 0) send(Action.REFRESH);
+        if ((tab == 2 || tab == 3 || tab == 4) && ++ticks % 20 == 0) send(Action.REFRESH);
     }
 
     @Override
@@ -131,8 +138,14 @@ public final class CityHandbookScreen extends Screen {
             drawLine(context, label("site", view.getString("status")), 148);
             drawLine(context, label("progress", view.getInt("roadCursor"), view.getInt("roadLength"),
                     view.getInt("projectCursor")), 162);
-        } else {
+        } else if (tab == 3) {
             renderNation(context);
+        } else {
+            var survey = view.getCompound("siteSurvey");
+            drawLine(context, label("survey_counts", survey.getInt("active"), survey.getInt("waiting"), survey.getInt("computing")), 133);
+            drawLine(context, label("survey_chunks", survey.getInt("ready"), survey.getInt("requested"), survey.getInt("chunkLimit")), 146);
+            drawLine(context, label("survey_totals", survey.getLong("completed"), survey.getLong("expired")), 159);
+            drawLine(context, survey.getBoolean("paused") ? label("survey_paused") : Text.literal(survey.getString("job")), 172);
         }
         if (!view.getBoolean("editable")) drawLine(context, label("read_only"), 181);
         super.render(context, mouseX, mouseY, delta);

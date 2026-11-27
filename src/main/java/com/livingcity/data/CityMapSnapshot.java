@@ -3,19 +3,22 @@ package com.livingcity.data;
 import citysim.CityNeedsReport;
 import citysim.WarSimulation;
 import com.livingcity.sensor.CitySimTicker;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.PlantBlock;
 import net.minecraft.fluid.Fluids;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.Heightmap;
+import net.minecraft.world.EmptyBlockView;
+import net.minecraft.world.chunk.WorldChunk;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /** Copies only data drawn by the map, on the same thread that owns the city ledgers. */
 public final class CityMapSnapshot {
-    private static final int TERRAIN_RADIUS = 4;
-
     public record Point(int x, int z) {
         static Point at(BlockPos pos) { return new Point(pos.getX(), pos.getZ()); }
         static Point chunk(long key) { return new Point(CityData.xOf(key), CityData.zOf(key)); }
@@ -26,15 +29,22 @@ public final class CityMapSnapshot {
     public record City(int id, int nationId, String nationName, boolean capital, int foundedFrom, Point hall, boolean missing,
                        int pop, int beds, int pendingBeds, int pendingBuildings, long cycle, double food,
                        double wood, double stone, Point quarrySite, double quarry, int[] forestChunk,
-                       boolean forestScanComplete, String siteStatus, Project project, List<Point> chunks,
-                       List<Point> roads, List<Building> buildings, List<Plot> plots, CityNeedsReport needs) {}
+                       boolean forestScanComplete, String siteStatus, String portStatus, Project project, List<Point> chunks,
+                       List<Point> roads, List<Building> buildings, List<Plot> plots, CityNeedsReport needs, CityTrade.AccountView trade) {}
     public record Expedition(int nation, CityNations.Journey journey) {}
     public record State(String mode, boolean present, boolean editable, String world, long cycles, int speed,
                         double effective, boolean gamePaused, boolean unlimited, int limit, String layer,
-                        Point player, long terrainVersion, List<City> cities, List<Expedition> expeditions,
-                        WarSimulation.View war) {}
-    public record Tile(int y, String biome, boolean water) {}
-    public record Surface(int x, int z, List<Tile> tiles) {}
+                        Point player, List<City> cities, List<Expedition> expeditions,
+                        WarSimulation.View war, boolean tradeSupported, List<CityTrade.Sailing> voyages, CityConstructionQueue.Status survey) {}
+    public record Tile(int y, String biome, boolean water, String material, boolean lava, Integer color, Integer waterDepth) {
+        public Tile(int y, String biome, boolean water, String material, boolean lava, Integer color) {
+            this(y, biome, water, material, lava, color, null);
+        }
+        public Tile(int y, String biome, boolean water, String material, boolean lava) {
+            this(y, biome, water, material, lava, null);
+        }
+        public Tile withDepth(int depth) { return new Tile(y, biome, water, material, lava, color, depth); }
+    }
 
     private CityMapSnapshot() {}
 
@@ -42,7 +52,7 @@ public final class CityMapSnapshot {
         return player != null && (player.hasPermissionLevel(2) || server.isHost(player.getGameProfile()));
     }
 
-    public static State capture(MinecraftServer server, ServerPlayerEntity player, boolean gamePaused, long terrainVersion) {
+    public static State capture(MinecraftServer server, ServerPlayerEntity player, boolean gamePaused) {
         var registry = CityRegistry.get(server);
         var clock = registry.byId(1).clock();
         List<City> cities = new ArrayList<>();
@@ -58,8 +68,9 @@ public final class CityMapSnapshot {
         Point playerPosition = player.getWorld() == server.getOverworld() ? Point.at(player.getBlockPos()) : null;
         return new State("live", true, canControl(server, player), server.getSaveProperties().getLevelName(),
                 registry.worldCycle(), clock.speed(), clock.effectiveSpeed(), gamePaused, registry.rules().unlimited(),
-                registry.rules().territory(), "surface", playerPosition, terrainVersion, List.copyOf(cities),
-                List.copyOf(expeditions), registry.warView());
+                registry.rules().territory(), "surface", playerPosition, List.copyOf(cities),
+                List.copyOf(expeditions), registry.warView(), true, registry.trade().voyages(registry.worldCycle()),
+                registry.construction().status(server.getOverworld(), registry));
     }
 
     private static City copyCity(MinecraftServer server, CityRegistry registry, CityData city) {
@@ -83,34 +94,41 @@ public final class CityMapSnapshot {
                 Point.at(city.townHallPos()), land.hallMissing, ledger.population, ledger.totalBeds(), ledger.pendingBeds(),
                 ledger.pendingBuildings(), ledger.cycleCount, ledger.foodPoints, ledger.timber, ledger.stone,
                 land.mapQuarry() == null ? null : Point.at(land.mapQuarry()), ledger.quarryWork, forestChunk, land.forestScanComplete(),
-                CitySimTicker.siteStatus(server, city), project, land.chunks.stream().map(Point::chunk).toList(),
-                land.mapRoads().stream().map(Point::at).toList(), List.copyOf(buildings), plots, CityNeedsReport.read(ledger));
+                CitySimTicker.siteStatus(server, city), land.portStatus(), project, land.chunks.stream().map(Point::chunk).toList(),
+                land.mapRoads().stream().map(Point::at).toList(), List.copyOf(buildings), plots, CityNeedsReport.read(ledger),
+                registry.trade().view(city, registry.worldCycle()));
     }
 
-    /** A bounded view of loaded ground under the local player. This never asks the chunk manager to load a chunk. */
-    public static List<Surface> terrain(MinecraftServer server, ServerPlayerEntity player) {
-        var world = server.getOverworld();
-        if (player.getWorld() != world) return List.of();
-        var center = player.getChunkPos();
-        List<Surface> result = new ArrayList<>();
-        for (int cx = center.x - TERRAIN_RADIUS; cx <= center.x + TERRAIN_RADIUS; cx++) {
-            for (int cz = center.z - TERRAIN_RADIUS; cz <= center.z + TERRAIN_RADIUS; cz++) {
-                var chunk = world.getChunkManager().getWorldChunk(cx, cz);
-                if (chunk == null) continue;
-                List<Tile> tiles = new ArrayList<>(16);
-                for (int dz = 0; dz < 4; dz++) {
-                    for (int dx = 0; dx < 4; dx++) {
-                        int x = dx * 4 + 2, z = dz * 4 + 2;
-                        int y = Math.max(world.getBottomY(), chunk.sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, x, z));
-                        var fluid = chunk.getFluidState(new BlockPos(cx * 16 + x, y, cz * 16 + z));
-                        var biome = chunk.getBiomeForNoiseGen(cx * 4 + dx, y >> 2, cz * 4 + dz);
-                        tiles.add(new Tile(y, biome.getKey().map(key -> key.getValue().getPath()).orElse("unknown"),
-                                fluid.isOf(Fluids.WATER) || fluid.isOf(Fluids.FLOWING_WATER)));
-                    }
+    public static List<Tile> terrain(WorldChunk chunk) {
+        List<Tile> result = new ArrayList<>(256);
+        int cx = chunk.getPos().x, cz = chunk.getPos().z;
+        var pos = new BlockPos.Mutable();
+        for (int z = 0; z < 16; z++) {
+            for (int x = 0; x < 16; x++) {
+                int y = Math.max(chunk.getBottomY(), chunk.sampleHeightmap(Heightmap.Type.WORLD_SURFACE, x, z));
+                var state = chunk.getBlockState(pos.set(cx * 16 + x, y, cz * 16 + z));
+                while (y > chunk.getBottomY() && ignoredMapPlant(state)) {
+                    state = chunk.getBlockState(pos.setY(--y));
                 }
-                result.add(new Surface(cx, cz, List.copyOf(tiles)));
+                var biome = chunk.getBiomeForNoiseGen(cx * 4 + (x >> 2), y >> 2, cz * 4 + (z >> 2));
+                Tile tile = surfaceTile(y, biome.getKey().map(key -> key.getValue().getPath()).orElse("unknown"), state);
+                result.add(tile.water() ? tile.withDepth(Math.max(1, y - chunk.sampleHeightmap(Heightmap.Type.OCEAN_FLOOR, x, z))) : tile);
             }
         }
         return List.copyOf(result);
+    }
+
+    public static boolean ignoredMapPlant(BlockState state) {
+        return state.isAir() || state.getBlock() instanceof PlantBlock && state.getFluidState().isEmpty();
+    }
+
+    public static Tile surfaceTile(int y, String biome, BlockState state) {
+        var fluid = state.getFluidState();
+        Integer color;
+        try { color = state.getMapColor(EmptyBlockView.INSTANCE, BlockPos.ORIGIN).color; }
+        catch (RuntimeException unavailableColor) { color = null; }
+        return new Tile(y, biome, fluid.isOf(Fluids.WATER) || fluid.isOf(Fluids.FLOWING_WATER),
+                Registries.BLOCK.getId(state.getBlock()).getPath(),
+                fluid.isOf(Fluids.LAVA) || fluid.isOf(Fluids.FLOWING_LAVA), color);
     }
 }

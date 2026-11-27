@@ -16,11 +16,156 @@
 #warArmies button,#homeArmies button{display:block;width:100%;text-align:left;margin:5px 0}
 #warReports output{padding:5px 0;border-top:1px solid #cbd9d0}
 #warControls label{margin:4px 0!important}
+:root{
+ --ink:#283b30;--muted:#625941;--gold:#c7a96a;--gold-ink:#765322;
+ --leather:radial-gradient(ellipse at 25% 10%,#71856538,transparent 75%),
+  radial-gradient(ellipse at 30% 42%,#f3d7a01a 0 14%,transparent 62%),
+  radial-gradient(ellipse at 75% 74%,#071d1730 0 15%,transparent 64%),
+  radial-gradient(ellipse at 40% 75%,#081f1833 0 18%,transparent 69%),
+  linear-gradient(135deg,#284a3c,#1b362d);
+ --leather-size:auto,4px 5px,7px 6px,13px 11px,auto;
+ --paper:radial-gradient(ellipse at 16% 4%,#fff8e4a8,transparent 64%),
+  radial-gradient(ellipse at 90% 96%,#98713c25,transparent 62%),
+  repeating-linear-gradient(77deg,#8f683b06 0 1px,transparent 1px 5px),#f3ead6;
+ --serif:"Noto Serif CJK SC","Songti SC",SimSun,serif;
+}
+body{display:grid;grid-template-rows:auto minmax(0,1fr);height:100vh;height:100dvh;color:var(--ink)}
+header,.toolRail{background:var(--leather);background-size:var(--leather-size);
+ background-position:center,1px 2px,3px 0,2px 5px,center;color:#fff4d4}
+header{height:auto;min-height:58px;padding:12px 22px;gap:12px 20px;flex-wrap:wrap;border-bottom:3px double var(--gold)}
+header h1{font:700 22px var(--serif);letter-spacing:.08em}
+header span{font:13px system-ui,sans-serif;color:#e7d5a8;overflow-wrap:anywhere}
+#mapTitle{font:inherit;color:inherit}
+.brandMark{display:inline-grid;place-items:center;width:24px;height:24px;margin-right:12px;
+ border:1px solid var(--gold);color:#e0c483;font:15px Georgia,serif;transform:rotate(45deg);vertical-align:2px}
+.brandMark i{transform:rotate(-45deg);font-style:normal}
+main{height:auto;min-height:0;grid-template-columns:118px 306px minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+.toolRail{display:flex;flex-direction:column;gap:8px;overflow:auto;padding:16px 9px;border-right:3px double var(--gold)}
+.toolRail button{background:#1831275e;border:1px solid #b594573f;color:#f7ecd0;border-radius:4px;
+ padding:10px 5px;font-size:13px;line-height:1.35}
+.toolRail button:hover{background-color:#f4d08e27;border-color:var(--gold)}
+.toolRail button[aria-pressed=true]{background:#4b654b;border-color:#e1bf7c;color:#fff5db;
+ box-shadow:inset 0 0 0 2px #263f30,inset 0 0 0 3px #d2af655c}
+.toolRail button:focus-visible{outline:1px dashed #ffdf9a;outline-offset:2px}
+aside{background:var(--paper);padding:17px;border-right:1px solid #bca67f;overscroll-behavior:contain;min-width:0;min-height:0}
+.toolHeading{display:flex;align-items:center;justify-content:space-between;gap:8px;
+ border-bottom:3px double #aa8453;padding:0 0 12px;margin:0 0 15px}
+.toolHeading h2{font:700 18px var(--serif);margin:0}
+.toolHeading h2::before{content:"◆";font:10px Georgia,serif;color:var(--gold-ink);margin-right:7px;vertical-align:3px}
+.toolHeading button{flex-shrink:0;font-size:12px;padding:4px 7px}
+aside h3{font-size:14px;margin:0 0 9px}
+.panel{background:linear-gradient(140deg,#fff9e9b3,#dfc89b30);border-color:#baa580}
+.panel summary{color:#534427}
+aside button,aside label.file,.bar button{background:#fcf5e5;border-color:#bda884;color:var(--ink)}
+aside button:enabled:hover,.bar button:enabled:hover{background:#ede2c6;border-color:#927044}
+aside button:disabled{opacity:.52;cursor:default}
+aside .file{display:inline-block;font-size:13px;padding:5px 8px;position:relative}
+aside .file input{position:absolute;width:1px;min-width:0}
+#layers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 7px}
+#layers label{display:flex;align-items:center;gap:5px;margin:0;font-size:12px}
+#layers input,.panel input[type=checkbox]{accent-color:#315643}
+#biomeLayer,#layerHint,#status{margin-top:9px}
+#simSpeed{flex:1;min-width:0}
+#worldTotals{display:grid;grid-template-columns:1fr auto;gap:6px 12px;margin:0;font-size:13px}
+#worldTotals dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+#clockState{border-bottom:1px solid #bda884;padding-bottom:9px;margin-bottom:12px}
+#offlineStatus{margin-top:0}
+.mapCanvas{background:#e8ebdf}
+@media(max-width:800px){
+ header{padding:9px 13px;min-height:46px}
+ header h1{font-size:18px}
+ main{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) minmax(150px,.8fr)}
+ .toolRail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:6px;
+  border-right:0;border-bottom:3px double var(--gold)}
+ .toolRail button{font-size:12px;padding:5px 2px}
+ .mapCanvas{grid-row:2}
+ aside{grid-row:3;padding:11px 14px;border-right:0;border-top:1px solid #bca67f;border-bottom:0}
+ .toolHeading{padding-bottom:6px;margin-bottom:9px}
+ .bar{right:8px;top:8px;gap:3px}
+ .bar button{font-size:12px;padding:5px 7px}
+}
 </style>
-<header><h1 id="mapTitle">城市调试地图</h1><span id="mapMode">LivingCity / Overworld</span></header>
-<main><aside>
-<section id="offlinePanel" class="panel" hidden>
- <h2 id="clockTitle">离线模拟</h2>
+<header><h1><span class="brandMark" aria-hidden="true"><i>✦</i></span><span id="mapTitle">城市调试地图</span></h1><span id="mapMode">LivingCity / Overworld</span></header>
+<main>
+<nav class="toolRail" aria-label="地图工具分类">
+ <button type="button" data-tools="shape" aria-pressed="false" aria-controls="shapeTools">世界塑造</button>
+ <button type="button" data-tools="civilization" aria-pressed="false" aria-controls="civilizationTools">智慧与生命</button>
+ <button type="button" data-tools="creatures" aria-pressed="false" aria-controls="creaturesTools">动物、生物与怪物</button>
+ <button type="button" data-tools="nature" aria-pressed="false" aria-controls="natureTools">自然与灾难</button>
+ <button type="button" data-tools="destruction" aria-pressed="false" aria-controls="destructionTools">毁灭与混乱</button>
+ <button type="button" data-tools="other" aria-pressed="false" aria-controls="otherTools">其他</button>
+</nav>
+<aside id="toolSidebar" aria-labelledby="toolHeading">
+<div class="toolHeading"><h2 id="toolHeading">世界工具</h2><button id="worldToolsBack" type="button" hidden>返回世界</button></div>
+<div id="clockState" hidden>
+ <output id="offlineStatus" aria-live="polite">可导入存档，或用种子创建新模拟。</output>
+ <output id="mapError" hidden role="alert"></output>
+</div>
+<section id="selectedPanel" class="panel" hidden><h3>所选区块</h3><output id="detail"></output></section>
+<div id="worldTools">
+<section id="clockTools" class="panel" hidden>
+ <h3 id="clockTitle">城市时钟</h3>
+ <div class="row">
+  <select id="simSpeed" aria-label="城市时钟倍率">
+   <option value="1">1×</option><option value="5">5×</option><option value="10">10×</option>
+   <option id="tradeSpeed" value="60" hidden>1 周期/秒</option>
+   <option value="1000" selected>1000×</option><option id="fastSpeed" value="18000">快速测试 · 300 周期/s</option>
+  </select>
+  <button id="simToggle" disabled>开始</button><button id="simStep" disabled>单步</button>
+ </div>
+</section>
+<section class="panel">
+ <h3>世界统计</h3>
+ <output id="worldTotalsEmpty">打开存档或创建模拟后查看。</output>
+ <dl id="worldTotals" hidden>
+  <dt>国家</dt><dd id="nationTotal"></dd>
+  <dt>城市</dt><dd id="cityTotal"></dd>
+  <dt>市民人口</dt><dd id="populationTotal"></dd>
+  <dt>可用床位</dt><dd id="bedTotal"></dd>
+ </dl>
+</section>
+<section id="worldRules" class="panel" hidden>
+ <h3>世界法则</h3>
+ <div id="offlineRules">
+  <div class="row">
+   <label><input id="unlimited" type="checkbox" disabled> 无限扩张</label>
+   <label>上限 <input id="territoryLimit" type="number" min="32" max="512" value="128" disabled aria-label="有限领地区块上限"></label>
+  </div>
+  <label><input id="timedExpansion" type="checkbox" disabled>定时扩张 · 每 20 周期尝试增加一区块</label>
+ </div>
+ <output id="liveRules" hidden></output>
+</section>
+<section id="mapPerformance" class="panel" hidden>
+ <details><summary>地图性能</summary>
+  <form id="atlasSettings">
+   <label><span>城市边界预绘 · 区块</span><input name="border" type="number" min="0" max="32" step="1" required></label>
+   <label><span>附近实景半径 · 区块</span><input name="radius" type="number" min="0" max="8" step="1" required></label>
+   <label><span>地图总线程</span><input name="workers" type="number" min="1" max="8" step="1" required></label>
+   <label><span>种子估算线程</span><input name="seedWorkers" type="number" min="1" max="8" step="1" required></label>
+   <label><span>每刻预计算预算 · ms</span><input name="budgetMs" type="number" min="0" max="5" step="1" required></label>
+   <label><span>施工与地图暂停线 · MSPT</span><input name="guardMs" type="number" min="25" max="49" step="1" required></label>
+   <button type="submit" id="saveAtlasSettings" disabled>应用地图设置</button>
+  </form>
+  <div class="row"><button id="importGround" type="button" disabled>补绘已保存区域</button>
+   <button id="cancelGroundImport" type="button" hidden>停止补绘</button></div>
+  <output id="atlasProgress" aria-live="polite"></output>
+  <output id="groundImportProgress" aria-live="polite"></output>
+ </details>
+</section>
+<section id="constructionSurvey" class="panel" hidden>
+ <details><summary>建筑区块检测</summary>
+  <form id="surveySettings">
+   <label><span>自动检测未加载现场</span><input name="enabled" type="checkbox"></label>
+   <label><span>同时处理现场</span><input name="slots" type="number" min="1" max="4" required></label>
+   <label><span>地图初筛线程</span><input name="workers" type="number" min="1" max="4" required></label>
+   <button id="saveSurveySettings" type="submit" disabled>应用检测设置</button>
+  </form>
+  <output id="surveyProgress" aria-live="polite"></output><div id="surveyJobs"></div>
+  <p>地图记录与种子初筛可在后台并行。实际区块检测及建筑放置使用游戏主线程预算。统计为直接请求区块，Minecraft 还会加载生成依赖。</p>
+ </details>
+</section>
+<section id="offlineSetup" class="panel" hidden>
+ <h3>离线模拟</h3>
  <details id="importSettings" open><summary>从存档继续</summary>
  <form id="importForm">
   <label class="file">选择 level.dat<input id="levelDat" type="file" accept=".dat" required></label>
@@ -38,34 +183,38 @@
   <label><span>采样半径</span><input id="scanRadius" type="number" required min="2" max="32" value="16"></label>
   <button id="scan" type="submit">扫描种子地图</button>
  </form></details>
- <div id="offlineActions" class="row"><button id="showOffline">显示离线地图</button><button id="foundTown" disabled>在所选区块建城</button></div>
- <div id="tradeControls" hidden>
-  <div class="row"><button id="warDemo">加载陆战示例</button><button id="tradeDemo">加载三城贸易示例</button><button id="buildPort" disabled>在所选子格建港</button></div>
-  <div class="row"><a id="downloadCheckpoint" href="/api/checkpoint" download>下载离线快照</a>
-   <label class="file">恢复离线快照<input id="restoreCheckpoint" type="file" accept=".dat"></label></div>
- </div>
- <div class="row">
-  <select id="simSpeed" aria-label="城市时钟倍率">
-   <option value="1">1×</option><option value="5">5×</option><option value="10">10×</option>
-   <option id="tradeSpeed" value="60" hidden>1 周期/秒</option>
-   <option value="1000" selected>1000×</option><option id="fastSpeed" value="18000">快速测试 · 300 周期/s</option>
-  </select>
-  <button id="simToggle" disabled>开始</button><button id="simStep" disabled>单步</button>
- </div>
- <details id="advanced"><summary>世界规则与群系层</summary>
- <div class="row">
-  <label><input id="unlimited" type="checkbox" disabled> 无限扩张</label>
-  <label>上限 <input id="territoryLimit" type="number" min="32" max="512" value="128" disabled aria-label="有限领地区块上限"></label>
- </div>
- <label><input id="timedExpansion" type="checkbox" disabled>定时扩张 · 每 20 周期尝试增加一区块</label>
- <div class="row"><label>群系层 Y <input id="worldY" class="compact" type="number" min="-64" max="319" placeholder="地表"></label>
-  <button id="applyLayer" disabled>应用</button><button id="surfaceLayer" disabled>地表</button></div></details>
- <output id="offlineStatus" aria-live="polite">可导入存档，或用种子创建新模拟。</output>
- <output id="mapError" hidden role="alert"></output>
+ <button id="showOffline" hidden>返回离线模拟地图</button>
 </section>
-<section id="offlineLink" hidden><a href="http://127.0.0.1:8769/">打开本机离线模拟</a><output>先用 8769 端口启动 start-offline.cmd。</output></section>
+<button id="snapshotShortcut" type="button">打开存档快照</button>
+</div>
+<div id="shapeTools" hidden>
+ <section id="offlineBuildingTools" class="panel" hidden>
+  <h3>建城与建港</h3>
+  <output id="buildingToolHint">选择离线地图上的区块。</output>
+  <div class="row">
+   <button id="foundTown" disabled>在所选区块建城</button>
+   <button id="buildPort" disabled>在所选子格建港</button>
+  </div>
+ </section>
+ <p id="shapeEmpty">当前地图模式暂无世界塑造工具。</p>
+</div>
+<div id="civilizationTools" hidden>
+<section class="panel">
+ <h3>地图图层</h3>
+ <div id="layers"></div>
+ <details id="biomeLayer" hidden><summary>群系采样高度</summary>
+  <div class="row"><label>群系层 Y <input id="worldY" class="compact" type="number" min="-64" max="319" placeholder="地表"></label>
+   <button id="applyLayer" disabled>应用</button><button id="surfaceLayer" disabled>地表</button></div>
+ </details>
+ <output id="layerHint">放大地图可查看建筑图标和名称。<br>对比描边：绿色新增，红色移除，紫色易主</output>
+</section>
+<section id="inspector" class="panel" hidden>
+ <div class="inspectHead"><h3 id="inspectedCity">城市需求</h3><button id="closeInspector">关闭</button></div>
+ <output id="needPriority"></output><output id="needProject"></output><output id="needProduction"></output>
+ <div id="needRows"></div>
+</section>
 <section id="warPanel" class="panel" hidden>
- <h2>战事</h2>
+ <h3>外交与战事</h3>
  <div id="warControls" hidden>
   <label><span>发起国</span><select id="warNationA" aria-label="发起国"></select></label>
   <label><span>对方</span><select id="warNationB" aria-label="对方国家"></select></label>
@@ -77,21 +226,34 @@
  <details><summary>最近战报</summary><div id="warReports"></div></details>
 </section>
 <section id="tradePanel" class="panel" hidden>
- <h2>港口贸易</h2>
+ <h3>港口贸易</h3>
  <output id="tradeMapStatus"></output>
  <div id="voyages"></div>
 </section>
-<section id="inspector" class="panel" hidden>
- <div class="inspectHead"><h2 id="inspectedCity">城市需求</h2><button id="closeInspector">关闭</button></div>
- <output id="needPriority"></output><output id="needProject"></output>
- <div id="needRows"></div>
-</section>
-<section><h2>城市与仓库</h2><div id="cities"></div></section>
-<section id="expeditionPanel" class="panel" hidden><h2>在途拓殖队</h2><div id="expeditions"></div></section>
-<section id="saveSnapshots"><h2>存档快照</h2><label class="file">打开当前存档<input type="file" id="now" accept=".dat"></label><p>选择世界目录下的 data/livingcity_city.dat。显示上次保存时的状态。</p><label class="file">对比先前快照<input type="file" id="before" accept=".dat"></label> <button id="clear">清除对比</button><output id="status" aria-live="polite">等待打开存档</output></section>
-<section><h2>地图图层</h2><div id="layers"></div><output id="layerHint">放大地图可查看建筑图标和名称。<br>对比描边：绿色新增，红色移除，紫色易主</output></section>
-<section><h2>所选区块</h2><output id="detail">点击地图查看归属和建筑。</output></section>
-</aside><article><canvas aria-label="城市区块地图"></canvas><div class="bar"><button id="minus" aria-label="缩小">−</button><button id="plus" aria-label="放大">＋</button><button id="fit">全图</button><button id="locatePlayer" hidden>玩家位置</button></div><div class="notice" id="coords">北 ↑　拖动平移 · 滚轮缩放</div></article></main>
+<section id="expeditionPanel" class="panel" hidden><h3>在途拓殖队</h3><div id="expeditions"></div></section>
+<section><h3>城市与仓库</h3><output id="citiesEmpty">暂无城市资料。</output><div id="cities"></div></section>
+</div>
+<div id="creaturesTools" hidden><p>此分类暂无地图工具。</p></div>
+<div id="natureTools" hidden><p>此分类暂无地图工具。</p></div>
+<div id="destructionTools" hidden><p>此分类暂无地图工具。</p></div>
+<div id="otherTools" hidden>
+ <section id="saveSnapshots" class="panel">
+  <h3>存档快照</h3>
+  <label class="file">打开当前存档<input type="file" id="now" accept=".dat"></label>
+  <p>选择世界目录下的 data/livingcity_city.dat。</p>
+  <label class="file">对比先前快照<input type="file" id="before" accept=".dat"></label>
+  <button id="clear">清除对比</button><output id="status" aria-live="polite">等待打开存档</output>
+ </section>
+ <section id="tradeControls" class="panel" hidden>
+  <h3>离线示例与快照</h3>
+  <div class="row"><button id="warDemo">加载陆战示例</button><button id="tradeDemo">加载三城贸易示例</button></div>
+  <div class="row"><a id="downloadCheckpoint" href="/api/checkpoint" download>下载离线快照</a>
+   <label class="file">恢复离线快照<input id="restoreCheckpoint" type="file" accept=".dat"></label></div>
+ </section>
+ <section id="offlineLink" hidden><a href="http://127.0.0.1:8769/">打开本机离线模拟</a><output>先用 8769 端口启动 start-offline.cmd。</output></section>
+ <p id="otherEmpty" hidden>当前地图模式暂无其他工具。</p>
+</div>
+</aside><article class="mapCanvas"><canvas aria-label="城市区块地图"></canvas><div class="bar"><button id="minus" aria-label="缩小">−</button><button id="plus" aria-label="放大">＋</button><button id="fit">全图</button><button id="locatePlayer" hidden>玩家位置</button></div><div class="notice" id="coords">北 ↑　拖动平移 · 滚轮缩放</div></article></main>
 <script>
 'use strict';
 // Minecraft Java saves use big-endian NBT. Keep 64-bit positions exact.
@@ -122,7 +284,7 @@ const needNames=['温饱','住房','安全','卫生','社交','精神','秩序']
 const needUnits=['饱食点','床','人','人','人','人','人'];
 function mapData(root){
  const d=root.data;if(!d||(!d.ledger&&!d.cities))throw Error('未找到 LivingCity 数据');
- if(d.registryVersion && ![1,2,3,4,5,6].includes(d.registryVersion))throw Error('未知城市存档版本');
+ if(d.registryVersion && ![1,2,3,4,5,6,7,8].includes(d.registryVersion))throw Error('未知城市存档版本');
  const cells=new Map(), list=[], plots=[];
  function cell(x,z){const key=x+','+z;if(!cells.has(key))cells.set(key,{x,z,points:[],roads:[]});return cells.get(key)}
  function point(n,id,type,label,kind){const [x,z]=pos(n);cell(x>>4,z>>4).points.push({x,z,id,type,label,kind})}
@@ -212,9 +374,49 @@ let inspectedCity=null;
 const liveAccess=new URLSearchParams(location.hash.slice(1)).get('live');
 let offline=false, offlineState, offlineTerrain=new Map(), offlineVersion=-1, actionPending=false;
 let showOffline=true, offlineError='', liveConnected=false;
+const atlasTiles=new Map();
+let atlasView, livePoint, selectedBlock, atlasSettingsSignature='';
 const terrainKey=(x,z)=>x+','+z;
-function terrainColor(biome,surfaceWater){
+const toolButtons=[...document.querySelectorAll('[data-tools]')];
+let activeTools='world';
+
+function openTools(group){
+ if(activeTools===group)return;
+ activeTools=group;
+ $('worldTools').hidden=group!=='world';
+ $('worldToolsBack').hidden=group==='world';
+ for(const button of toolButtons){
+  const active=button.dataset.tools===group;
+  button.setAttribute('aria-pressed',String(active));
+  $(button.getAttribute('aria-controls')).hidden=!active;
+  if(active)$('toolHeading').textContent=button.textContent;
+ }
+ if(group==='world')$('toolHeading').textContent='世界工具';
+ $('toolSidebar').scrollTop=0;
+ details();
+}
+for(const button of toolButtons)button.onclick=()=>openTools(activeTools===button.dataset.tools?'world':button.dataset.tools);
+$('worldToolsBack').onclick=()=>{
+ const previous=toolButtons.find(button=>button.dataset.tools===activeTools);
+ openTools('world');
+ previous?.focus();
+};
+$('snapshotShortcut').onclick=()=>{
+ openTools('other');
+ $('now').focus();
+};
+
+function terrainColor(biome,surfaceWater,material,lava){
+ if(lava)return '#bd6743';
  if(surfaceWater===true)return '#8bb0be';
+ if(material){
+  if(material.endsWith('_leaves'))return '#83a47b';
+  if(material==='snow'||material==='snow_block'||material.endsWith('ice'))return '#dce6e6';
+  if(material==='sand'||material==='red_sand'||material.endsWith('sandstone'))return '#decca1';
+  if(['stone','gravel','andesite','granite','diorite','deepslate','cobblestone'].includes(material))return '#b8b5a7';
+  if(material==='grass_block'||material==='moss_block')return '#bdcd9b';
+  if(material==='dirt_path'||material==='coarse_dirt'||material==='dirt'||material==='podzol')return '#bcad8a';
+ }
  if(biome.includes('ocean') || biome.endsWith('river'))return surfaceWater===false?'#d7cba3':'#8bb0be';
  if(biome.includes('caves') || biome==='deep_dark')return '#b1a39d';
  if(biome.includes('snow') || biome.includes('frozen') || biome==='ice_spikes')return '#dbe4e5';
@@ -298,7 +500,7 @@ function drawBuildingMarkers(markers){
 }
 let combined=new Map();
 function allCells(){return combined}
-function fit(){const cells=allCells();if(!cells.size){draw();return}let l=Infinity,r=-Infinity,t=Infinity,b=-Infinity;for(const p of cells.values()){l=Math.min(p.x,l);r=Math.max(p.x,r);t=Math.min(p.z,t);b=Math.max(p.z,b)}cx=(l+r+1)/2;cz=(t+b+1)/2;scale=Math.max(.00001,Math.min(96,w/(r-l+3),h/(b-t+3)));draw()}
+function fit(){const cells=liveAccess&&current?.list.length?current.cells:allCells();if(!cells.size){draw();return}let l=Infinity,r=-Infinity,t=Infinity,b=-Infinity;for(const p of cells.values()){l=Math.min(p.x,l);r=Math.max(p.x,r);t=Math.min(p.z,t);b=Math.max(p.z,b)}cx=(l+r+1)/2;cz=(t+b+1)/2;scale=Math.max(.00001,Math.min(96,w/(r-l+3),h/(b-t+3)));draw()}
 function drawVoyages(x0,y0){
  if(!layers[7].checked)return;
  const size=scale/4;
@@ -325,6 +527,21 @@ function drawVoyages(x0,y0){
 function draw(){
  g.clearRect(0,0,w,h);g.fillStyle='#eceee4';g.fillRect(0,0,w,h);
  const x0=w/2-cx*scale,y0=h/2-cz*scale,unit=scale/16,markers=[];
+ if(layers[6].checked&&liveAccess){
+  g.imageSmoothingEnabled=false;
+  const visible=[...atlasTiles.values()].filter(({x,z,step})=>{
+   const span=8, left=x0+x*span*scale, top=y0+z*span*scale;
+   return left<w&&top<h&&left+span*scale>=0&&top+span*scale>=0;
+  });
+  for(const {x,z,step,image} of visible){
+   const size=8*scale;
+   g.drawImage(image,x0+x*size,y0+z*size,size,size);
+  }
+ }
+ if(liveAccess&&selectedBlock){
+  g.strokeStyle='#fff7dc';g.lineWidth=1;
+  g.strokeRect(x0+selectedBlock[0]*unit,y0+selectedBlock[1]*unit,unit,unit);
+ }
  if(scale>=9){g.beginPath();for(let x=x0%scale;x<w;x+=scale){g.moveTo(x,0);g.lineTo(x,h)}for(let y=y0%scale;y<h;y+=scale){g.moveTo(0,y);g.lineTo(w,y)}g.strokeStyle='#cdd4c7';g.lineWidth=.7;g.stroke()}
  for(const [key,p] of allCells()){
   const x=x0+p.x*scale,y=y0+p.z*scale;if(x+scale<0||y+scale<0||x>w||y>h)continue;
@@ -332,7 +549,7 @@ function draw(){
   if(layers[6].checked && p.tiles){
    const size=scale/4;
    p.tiles.forEach((tile,i)=>{
-    g.fillStyle=terrainColor(tile.biome,current?.surface?tile.water:undefined);
+    g.fillStyle=terrainColor(tile.biome,current?.surface?tile.water:undefined,tile.material,tile.lava);
     g.fillRect(x+(i%4)*size,y+Math.floor(i/4)*size,size+.16,size+.16);
    });
   }else if(layers[6].checked && p.biome){g.fillStyle=terrainColor(p.biome);g.fillRect(x,y,scale+.2,scale+.2)}
@@ -369,6 +586,10 @@ function draw(){
     g.strokeStyle='#fff7dc';g.strokeRect(x+(selectedTile[0]&3)*scale/4,y+(selectedTile[1]&3)*scale/4,scale/4,scale/4);
    }
   }
+ }
+ if(selected&&!allCells().has(selected)){
+  const [x,z]=selected.split(',').map(Number);
+  g.lineWidth=2;g.strokeStyle='#122e31';g.strokeRect(x0+x*scale,y0+z*scale,scale,scale);
  }
  if(layers[0].checked&&current)drawCityBorders(x0,y0);
  if(layers[3].checked&&current?.plots?.length){
@@ -473,16 +694,31 @@ function terrainTile(x,z){
  return current?.terrain?.get(terrainKey(x>>2,z>>2))?.tiles?.[(z&3)*4+(x&3)];
 }
 function details(){
+ $('selectedPanel').hidden=!selected||!['shape','civilization'].includes(activeTools);
  const a=current?.cells.get(selected), b=old?.cells.get(selected), t=current?.terrain?.get(selected);
  let lines=selected?['区块 '+selected,'当前 '+(a?.owner?'城市 #'+a.owner:current?.legacy?'疆界未知':'无归属')]:['点击地图查看归属和建筑。'];
  if(selected && old)lines.push('先前 '+(old.legacy?'疆界未知':b?.owner?'城市 #'+b.owner:'无归属'));
  const tile=selectedTile?terrainTile(...selectedTile):null;
- if(t?.tiles)lines.push('陆地 '+t.tiles.filter(p=>!p.water).length+' / 16 子格');
+ if(t?.tiles)lines.push('陆地 '+t.tiles.filter(p=>!p.water&&!p.lava).length+' / 16 子格');
  if(tile){
   const [x,z]=selectedTile.map(v=>v*4);
-  lines.push('子格 '+selectedTile.join(', ')+' · 地表'+(tile.water?'水面':'陆地'),
+  lines.push('子格 '+selectedTile.join(', ')+' · 地表'+(tile.lava?'岩浆':tile.water?'水面':'陆地'),
    '方块 X '+x+'–'+(x+3)+' · Z '+z+'–'+(z+3),'群系 '+tile.biome+' · 采样 Y '+tile.y);
+  if(tile.material)lines.push('地表方块 '+tile.material);
  }else if(t)lines.push('群系 '+t.biome+' · 采样 Y '+t.y);
+ else if(liveAccess&&selected){
+  const point=livePoint?.key===selectedBlock?.join(',')?livePoint.data:null;
+  if(point){
+   const ground=point.ground;
+   const source={live:'附近实测',saved:'已保存实景',seed:'生成器估算'}[point.source];
+   lines.push('方块 X '+selectedBlock[0]+' · Z '+selectedBlock[1]+' · 精度 '+(point.source==='seed'?'4×4':'1×1'));
+   lines.push(source+' · 群系 '+ground.biome+' · Y '+ground.y
+    +(ground.lava?' · 岩浆':ground.water?' · 水面':' · 陆地'));
+   if(ground.material)lines.push('地表方块 '+ground.material);
+   if(ground.waterDepth!=null)lines.push('水深 '+ground.waterDepth+' 方块 · '+(ground.waterDepth<=5?'浅海':ground.waterDepth<=10?'近海':'深海'));
+   if(point.connectedWaterCells>0)lines.push('本区块相连水面 '+point.connectedWaterCells+' / 16 子格');
+  }else lines.push('地表等待采样');
+ }
  for(const m of a?.points||[])lines.push(m.label+' · '+(m.type==='anchor'?'锚点 ':'')+m.x+', '+m.z);
  for(const label of a?.parcels||[])lines.push(label);
  if(a?.occupation)lines.push('国家 #'+a.occupation.nation+' · 占领进度 '+a.occupation.progress+' / 4');
@@ -502,6 +738,7 @@ function details(){
  }
 }
 function inspectCity(id){
+ openTools('civilization');
  inspectedCity=String(id);
  renderNeeds();
  $('inspector').scrollIntoView({block:'nearest'});
@@ -521,6 +758,8 @@ function renderNeeds(){
  const p=city.project;
  $('needProject').textContent=p?'账本工程 · '+(buildingNames[p.kind]||p.kind)+' · '
    +Math.floor(p.paidHours)+' / '+Math.ceil(p.requiredHours)+' 工时'+(p.paused?' · 暂停':''):'当前无账本工程';
+ $('needProduction').textContent='口粮来自抽象工时生产，当前不要求实体农田'
+   +(city.siteStatus?' · '+city.siteStatus:'')+(city.portStatus?' · 港口 '+city.portStatus:'');
  const rows=$('needRows');
  rows.replaceChildren();
  const layers=report?.layers||city.satisfaction?.map((satisfaction,id)=>({id,satisfaction,tracked:id!==2&&id!==6}))||[];
@@ -563,6 +802,8 @@ function cityCard(c){
  const guards=current?.war?.guards.find(guard=>guard.city===Number(c.id));
  if(guards)line('驻防 '+guards.soldiers+' 人');
  line('存粮 '+Math.floor(c.food)+' 饱食点 · 木材 '+stock(c.wood)+' · 石材 '+stock(c.stone));
+ line('口粮来源 · 抽象工时生产，当前不要求实体农田');
+ if(c.portStatus)line('港口 · '+c.portStatus);
  if(c.trade){
   const t=c.trade;
   line('金币 '+gold(t.coins)+(t.escrow?' · 冻结 '+gold(t.escrow):''));
@@ -589,7 +830,7 @@ function cityCard(c){
   const spare=c.beds-c.pop;
   line('当前无账本工程'+(spare>0?' · 空床 '+spare:''));
  }
- if(c.status){
+ if(c.status||c.forestScanComplete!==undefined){
   const forest=c.forest?'林地区块 '+c.forestChunk.join(', '):c.forestScanComplete?'采样范围内无林地':'正在搜索林地';
   const quarry=c.quarry>=8?'采石场已投产':c.located?'采石场施工 '+c.quarry.toFixed(1)+'/8':'尚无采石场';
   line(forest+' · '+quarry);
@@ -606,7 +847,7 @@ function renderTrade(){
  const panel=$('tradePanel');
  panel.hidden=!current?.tradeSupported;
  if(panel.hidden)return;
- $('tradeMapStatus').textContent=current.demo?'三城示例 · 可用单步看发船、装货和交付'
+ $('tradeMapStatus').textContent=liveAccess?'临水城市自动选址建港 · 航次与当前存档同步':current.demo?'三城示例 · 可用单步看发船、装货和交付'
   :'种子预估岸线 · 选中城市内的岸上子格建港';
  const rows=$('voyages');
  const voyages=current.voyages||[];
@@ -708,7 +949,10 @@ function refresh(refit=true){
  for(const [key,terrain] of current?.terrain||[]){
   combined.set(key,{...combined.get(key),...terrain});
  }
- $('cities').replaceChildren(...(current?.list||[]).map(cityCard));
+ const cities=current?.list||[];
+ $('cities').replaceChildren(...cities.map(cityCard));
+ $('citiesEmpty').hidden=cities.length>0;
+ renderWorldTotals(cities);
  renderTrade();
  renderExpeditions();
  renderWar();
@@ -717,6 +961,18 @@ function refresh(refit=true){
   +((current?.legacy||old?.legacy)?' · 旧档无疆界记录':'');
  details();
  if(refit)fit();else draw();
+}
+function renderWorldTotals(cities){
+ $('worldTotals').hidden=!current;
+ $('worldTotalsEmpty').hidden=!!current;
+ if(!current)return;
+ const totals={
+  nationTotal:new Set(cities.map(city=>city.nationId||city.id)).size,
+  cityTotal:cities.length,
+  populationTotal:cities.reduce((sum,city)=>sum+city.pop,0),
+  bedTotal:cities.reduce((sum,city)=>sum+city.beds,0)
+ };
+ for(const [id,value] of Object.entries(totals))$(id).textContent=value.toLocaleString('zh-CN');
 }
 for(const id of ['now','before']){let revision=0;$(id).onchange=async e=>{const file=e.target.files[0];if(!file)return;const ticket=++revision;try{const stream=file.stream().pipeThrough(new DecompressionStream('gzip'));const m=mapData(parseNBT(await new Response(stream).arrayBuffer()));if(ticket!==revision)return;m.name=file.name;if(id==='now'){showOffline=false;current=m;selected=selectedTile=null;if(offline)updateControls();}else old=m;refresh()}catch(err){$('status').textContent='读取失败 · '+err.message}e.target.value=''}}
 $('clear').onclick=()=>{old=null;refresh()};$('fit').onclick=fit;
@@ -734,7 +990,9 @@ function mapCoordinates(e){
 function selectAt(x,z){
  selected=terrainKey(Math.floor(x),Math.floor(z));
  selectedTile=[Math.floor(x*4),Math.floor(z*4)];
+ selectedBlock=[Math.floor(x*16),Math.floor(z*16)];
  details();draw();
+ if(liveAccess)refreshAtlasPoint();
 }
 canvas.oncontextmenu=e=>{
  e.preventDefault();
@@ -780,6 +1038,7 @@ function offlineMap(state) {
   }
   for(const road of town.roads)cell(road.x>>4,road.z>>4).roads.push([road.x,road.z]);
   for(const {x,z,kind,id:bid} of town.buildings){
+   if(kind==='PORT'&&town.trade?.port)continue;
    cell(x>>4,z>>4).points.push({id,x,z,type:'anchor',kind,label:(buildingNames[kind]||kind||'建筑')+' #'+bid});
   }
   if(town.plots?.length){
@@ -825,9 +1084,19 @@ async function encodeSave({level,cities,radius}){
 }
 function updateControls(){
  const state=offlineState, present=!!state?.present;
+ renderConstructionSurvey(state?.survey);
  const hasCities=present&&state.cities.length>0;
  const lock=actionPending||!present;
  const clockLocked=lock||(liveAccess?(!liveConnected||!state.editable||state.gamePaused):!hasCities);
+ const offlineWorld=present&&!liveAccess&&showOffline;
+ $('clockTools').hidden=!showOffline;
+ $('worldRules').hidden=!present||!showOffline;
+ $('offlineBuildingTools').hidden=!offlineWorld;
+ $('shapeEmpty').hidden=offlineWorld;
+ if(!liveAccess)$('shapeEmpty').textContent=showOffline?'请先从「世界工具」导入存档或创建模拟。':'请先从「世界工具」返回离线模拟地图。';
+ $('biomeLayer').hidden=!offlineWorld||!!state?.demo;
+ $('buildPort').hidden=!state?.tradeSupported;
+ $('buildingToolHint').textContent=state?.tradeSupported?'选中无主陆地区块建城，或选中城内临水的陆地子格建港。':'选中无主陆地区块建城。';
  $('scan').disabled=actionPending;
  $('importSave').disabled=actionPending;
  $('showOffline').disabled=lock;
@@ -835,7 +1104,7 @@ function updateControls(){
  $('tradeControls').hidden=!state?.tradeSupported;
  $('tradeDemo').disabled=actionPending;
  $('warDemo').disabled=actionPending;
- updateWarControls(state,clockLocked);
+ updateWarControls(showOffline?state:null,clockLocked);
  $('downloadCheckpoint').hidden=lock;
  $('restoreCheckpoint').disabled=actionPending;
  $('tradeSpeed').hidden=!state?.tradeSupported;
@@ -850,8 +1119,33 @@ function updateControls(){
   $('unlimited').checked=state.unlimited;
   $('timedExpansion').checked=!!state.timedExpansion;
   if(document.activeElement!==$('territoryLimit'))$('territoryLimit').value=state.limit;
+  if(liveAccess)$('liveRules').textContent=(state.unlimited?'领地可无限扩张':'领地上限 · '+state.limit+' 区块')
+   +'。在游戏内的城市手册修改。';
  }
  details();
+}
+let surveySettingsSignature='';
+function renderConstructionSurvey(status){
+ $('constructionSurvey').hidden=!liveAccess||!status;
+ if(!status)return;
+ const fields=$('surveySettings').elements, signature=JSON.stringify(status.settings);
+ if(signature!==surveySettingsSignature){
+  fields.enabled.checked=status.settings.enabled;
+  fields.slots.value=status.settings.slots;fields.workers.value=status.settings.workers;
+  surveySettingsSignature=signature;
+ }
+ const enabled=liveConnected&&offlineState?.editable&&!actionPending&&!offlineState?.gamePaused;
+ for(const key of ['enabled','slots','workers'])fields[key].disabled=!enabled;
+ $('saveSurveySettings').disabled=!enabled;
+ $('surveyProgress').textContent=(status.paused?'暂停 · ':'')+'活动现场 '+status.active+' / '+status.settings.slots
+  +' · 等待城市 '+status.waiting+' · 后台初筛 '+status.computing
+  +'\n区块就绪 '+status.ready+' / 直接请求 '+status.requested+' · 上限 '+status.chunkLimit
+  +'\n已完成 '+status.completed+' · 超时或未通过 '+status.expired;
+ $('surveyJobs').replaceChildren(...status.jobs.map(job=>{
+  const row=document.createElement('output');
+  row.textContent='城市 #'+job.city+' · '+job.purpose+' · '+job.phase+' · '+job.ready+'/'+job.requested+' 区块 · '+job.seconds+' 秒';
+  return row;
+ }));
 }
 function updateWarControls(state,locked){
  const names=new Map();
@@ -882,9 +1176,27 @@ async function request(path,init){
  }
  const response=await fetch(path,init);
  const value=await response.json();
- if(!response.ok&&value.error==='城市存档版本不受支持')throw Error('当前离线后台版本较旧。请使用新版后台，或在「存档快照」中直接打开 livingcity_city.dat。');
+ if(!response.ok&&value.error==='城市存档版本不受支持')throw Error('当前离线后台版本较旧。请使用新版后台，或从「其他」的存档快照直接打开 livingcity_city.dat。');
  if(!response.ok)throw Error(value.error||'连接失败');
  return value;
+}
+
+async function atlasBitmap(tile){
+ const response=await fetch('/api/map/tile?x='+tile.x+'&z='+tile.z+'&step='+tile.step+'&v='+tile.version,{
+  headers:{Authorization:'Bearer '+liveAccess},signal:AbortSignal.timeout(5000)
+ });
+ if(!response.ok)return false;
+ const image=await createImageBitmap(await response.blob());
+ const key=tile.step+','+tile.x+','+tile.z;
+ atlasTiles.get(key)?.image.close();
+ atlasTiles.delete(key);
+ atlasTiles.set(key,{...tile,image});
+ while(atlasTiles.size>1024){
+  const oldest=atlasTiles.keys().next().value;
+  atlasTiles.get(oldest).image.close();
+  atlasTiles.delete(oldest);
+ }
+ return true;
 }
 
 async function receiveState(state,number,refit){
@@ -923,6 +1235,74 @@ async function receiveState(state,number,refit){
   current=offlineMap(state);
   refresh(refit||first);
  }
+}
+
+function terrainViewport(){
+ const step=1,span=8;
+ const bounds=(center,pixels)=>{
+  const edge=1875000, radius=pixels/(2*scale);
+  const start=Math.floor(Math.max(-edge,center-radius)/span);
+  const end=Math.ceil(Math.min(edge,center+radius)/span);
+  return [start,end-start];
+ };
+ const [x,width]=bounds(cx,w),[z,height]=bounds(cz,h);
+ return width>0&&height>0?{step,query:'x='+x+'&z='+z+'&w='+width+'&h='+height+'&step='+step}:null;
+}
+
+async function pollTerrainViewport(){
+ if(liveConnected&&current){
+  const viewport=layers[6].checked&&w&&h?terrainViewport():null;
+  try{
+   if(viewport){
+    const data=await request('/api/map/view?'+viewport.query);
+    if(viewport.query===terrainViewport()?.query){
+     atlasView=viewport;
+     renderAtlasStatus(data.status);
+     const pending=data.tiles.filter(t=>atlasTiles.get(t.step+','+t.x+','+t.z)?.version!==t.version).slice(0,24);
+     for(let i=0;i<pending.length;i+=3){
+      await Promise.allSettled(pending.slice(i,i+3).map(atlasBitmap));
+     }
+     if(pending.length){draw();refreshAtlasPoint();}
+    }
+   }else renderAtlasStatus(await request('/api/map/status'));
+  }catch(error){
+   $('atlasProgress').textContent=error.message;
+  }
+ }
+ setTimeout(pollTerrainViewport,350);
+}
+
+async function refreshAtlasPoint(){
+ if(!liveConnected||!selectedBlock)return;
+ const icon=selectedBlock.join(',');
+ const [x,z]=selectedBlock;
+ try{
+  const data=await request('/api/map/point?x='+x+'&z='+z+'&step='+(atlasView?.step||1));
+  if(icon===selectedBlock?.join(',')){livePoint={key:icon,data};details();}
+ }catch{}
+}
+
+function renderAtlasStatus(status){
+ const signature=JSON.stringify(status.settings);
+ const fields=$('atlasSettings').elements;
+ fields.workers.max=fields.seedWorkers.max=status.maxWorkers;
+ if(signature!==atlasSettingsSignature){
+  for(const [name,value] of Object.entries(status.settings))fields[name].value=value;
+  atlasSettingsSignature=signature;
+ }
+ const enabled=liveConnected&&offlineState?.editable&&!actionPending&&!offlineState?.gamePaused;
+ for(const name of Object.keys(status.settings))fields[name].disabled=!enabled;
+ $('saveAtlasSettings').disabled=!enabled;
+ $('importGround').disabled=!enabled||status.history.active;
+ $('cancelGroundImport').hidden=!status.history.active;
+ $('cancelGroundImport').disabled=!enabled;
+ $('atlasProgress').textContent='可见瓦片 '+status.visibleReady+' / '+status.visibleTotal+' · 边界待补 '+status.borderLeft
+  +' · '+status.mspt.toFixed(1)+' MSPT · '+(status.deferred?'已让出游戏性能':'后台 '+status.busy+' 任务')
+  +(status.parallelSeed?'':' · 此生成器在主线程限时采样');
+ const stages={idle:'',index:'正在查找存档区块',reading:'正在读取存档区块',painting:'正在绘制瓦片',done:'补绘完成',cancelled:'已停止',failed:'补绘失败'};
+ const job=status.history;
+ $('groundImportProgress').textContent=job.stage==='idle'?'':stages[job.stage]+' · 已读 '+job.scanned
+  +' · 实景 '+job.imported+' · 跳过 '+job.skipped+' · 瓦片 '+job.painted+' / '+(job.painted+job.paintPending);
 }
 
 async function act(body,refit=false) {
@@ -983,20 +1363,39 @@ async function connectOffline(){
  if(location.protocol==='file:'){$('offlineLink').hidden=false;return;}
  if(location.protocol!=='http:'||location.hostname!=='127.0.0.1')return;
  offline=true;
- $('offlinePanel').hidden=false;
+ $('clockState').hidden=false;
  if(liveAccess){
   document.title='世界地图 · LivingCity';
   $('mapTitle').textContent='世界地图';
   $('mapMode').textContent='正在连接游戏';
-  $('clockTitle').textContent='与游戏同步';
+  $('clockTitle').textContent='游戏时钟';
   $('offlineStatus').textContent='正在读取游戏中的城市时钟。';
-  $('layerHint').textContent='地表显示玩家附近已加载的区块。可缩放查看建筑和拓殖目标。';
-  for(const id of ['importSettings','scanSettings','offlineActions','advanced','saveSnapshots','fastSpeed'])$(id).hidden=true;
+  $('worldTotalsEmpty').textContent='正在读取世界数据。';
+  $('layerHint').textContent='淡色是种子估算，实景覆盖已经勘测的区域。点选可查看来源、地表方块和 Y。';
+  layers[6].parentElement.lastChild.textContent='地表';
+  $('mapPerformance').hidden=false;
+  for(const id of ['offlineRules','saveSnapshots','snapshotShortcut','fastSpeed'])$(id).hidden=true;
+  $('liveRules').hidden=false;
+  $('otherEmpty').hidden=false;
   layers[5].parentElement.hidden=true;
   layers[7].parentElement.hidden=true;
   $('simSpeed').value='1';
-  updateControls();
+  $('atlasSettings').onsubmit=e=>{
+   e.preventDefault();
+   const settings=Object.fromEntries([...new FormData(e.target)].map(([key,value])=>[key,Number(value)]));
+   act({action:'mapSettings',...settings});
+  };
+   $('surveySettings').onsubmit=e=>{
+    e.preventDefault();const fields=e.target.elements;
+    act({action:'surveySettings',enabled:fields.enabled.checked,slots:Number(fields.slots.value),workers:Number(fields.workers.value)});
+   };
+  $('importGround').onclick=()=>act({action:'mapImport'});
+  $('cancelGroundImport').onclick=()=>act({action:'mapCancel'});
+  pollTerrainViewport();
+ }else{
+  $('offlineSetup').hidden=false;
  }
+ updateControls();
  $('importForm').onsubmit=e=>{
   e.preventDefault();
   const level=$('levelDat').files[0], cities=$('cityDat').files[0];

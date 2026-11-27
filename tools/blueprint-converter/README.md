@@ -31,15 +31,16 @@ powershell -File test.ps1              # Windows 侧补充闸门（GenSamples �
 
 ```
 java -cp out bpconv.Main <input.litematic|input.nbt|input.schematic|input.bp> \
-    -o <outdir> --kind <HOUSE|WELL|PLAZA|ROAD|WALL|GATE> --id <id> \
+    -o <outdir> --kind <HOUSE|WELL|PLAZA|ROAD|WALL|GATE|PORT> --id <id> \
     --author "来源作者" --license <CC0|CC-BY-4.0> \
-    [--entrance x,y,z] [--beds auto|N] [--classes block-classes.txt] [--force]
+    [--entrance x,y,z] [--floor-y N] [--beds auto|N] [--classes block-classes.txt] [--force]
 ```
 
 - 退出码：`0` 成功｜`1` 校验/IO 失败｜`2` 许可证门拒绝（白名单只有 CC0 / CC-BY-4.0，来源不明的蓝图不进管线）
 - 输出：`<outdir>/<kind小写>/<id>.bp`（纯文本 LF，依赖序 = 放置序）+ `<id>.report.txt`（分类计数/警告/许可回显）
 - `--entrance`：HOUSE/WELL/PLAZA 必填，必须落在 footprint 边缘（放置时贴道路，见《城市形态与道路》§2）。**坐标用归一化输出坐标系**（与输出 .bp 方块清单同口径，footprint 原点 0,0,0；2026-11-10 真实素材端到端拍板——源世界坐标是搭建者站位细节，不作为入口口径）
 - `--beds auto`（默认）：按床方块 `part=head` 半格数统计
+- `--floor-y N`：地板在归一化蓝图中的高度。最低层为 0，第四层填 3。文本蓝图重转时保留 `@floor_y`，显式参数可覆盖。PORT 允许栈桥的地板只占矩形内的一部分。
 - `.bp` 输入按**文件头自动识别**：前 4 字节 = magic(182827830) → Axiom 容器；否则按自家文本格式 V1 解析（回环转写，CLI 参数优先于 @meta）
 
 ## 目录
@@ -54,7 +55,7 @@ block-classes.txt    S/D/C 分类表 —— 与模组运行时共用的单一来
 ## 关键约定（契约摘录）
 
 1. **依赖序**：清单顺序 = 放置顺序；y 升序逐层、同层非依附块在前依附块（D 类）在后，同层同类按 (z,x)——确定性全序，运行时按行序回放不重排。
-2. **地基平面**：y=0 层必须完整（V1 硬校验）；体素自动归一化到原点。
+2. **地板平面**：陆地蓝图在声明的地板高度有完整底板，省略高度时沿用 y=0。体素自动归一化到原点。
 3. **S/D/C 语义**：S 进完整性账；D 账本忽略；C 保留在清单但运行时放置跳过（玩家私塞物品不动）。
 4. **未知方块**：默认归 S + 报告警告（保守进完整性账，人工复核补表）。
 5. **方块状态**：`id[prop=value,...]` 后缀（键字典序规范化）——BLUEPRINT-FORMAT §2 增补语法。

@@ -39,8 +39,8 @@ public final class CityInspectorScreen extends Screen {
     @Override
     protected void init() {
         panelWidth = Math.min(width - 16, 370);
-        spacing = Math.max(10, Math.min(17, (height - 132) / 7));
-        panelHeight = 97 + 7 * spacing + 26;
+        spacing = Math.max(10, Math.min(17, (height - 171) / 7));
+        panelHeight = 136 + 7 * spacing + 26;
         left = (width - panelWidth) / 2;
         top = Math.max(2, (height - panelHeight) / 2);
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> close())
@@ -67,11 +67,14 @@ public final class CityInspectorScreen extends Screen {
         line(context, project.isEmpty() ? label("idle")
                 : label(city.getBoolean("paused") ? "paused" : "project", kind(project),
                 (long) city.getDouble("paid"), (long) Math.ceil(city.getDouble("required"))), 71, 0xffd8e7db);
-        line(context, label("legend"), 84, 0xffa9bdb5);
+        line(context, Text.literal(city.getString("resourceStatus")), 84, 0xffa9bdb5);
+        line(context, Text.literal(city.getString("portStatus")), 97, 0xffa9bdb5);
+        line(context, label("food_source"), 110, 0xffa9bdb5);
+        line(context, label("legend"), 123, 0xffa9bdb5);
         var needs = city.getList("needs", NbtElement.COMPOUND_TYPE);
         for (int i = 0; i < needs.size(); i++) {
             var row = needs.getCompound(i);
-            int y = 97 + i * spacing;
+            int y = 136 + i * spacing;
             int id = row.getInt("id");
             int color = id == urgent ? 0xffefc573 : 0xffd8e7db;
             line(context, need(id), y, color);

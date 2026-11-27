@@ -1,6 +1,7 @@
 package com.livingcity.data;
 
 import com.livingcity.stage.CityBlueprint;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -149,18 +150,21 @@ final class CityRoads {
         return fillDepth(world, city, ground, null, null);
     }
 
+    private static boolean clearable(BlockState state) {
+        return CityBlueprint.replaceable(state) || CitySurface.naturalLeaves(state);
+    }
+
     private static int fillDepth(ServerWorld world, CityData city, BlockPos ground, Long approach, Long lotChunk) {
         if (!world.isChunkLoaded(ground) || !available(city, ground, approach, lotChunk)) return -1;
         if (city.land.occupied(ground, city) && !world.getBlockState(ground).isOf(Blocks.DIRT_PATH)) return -1;
         BlockPos hall = city.townHallPos();
         if (hall.getX() == ground.getX() && hall.getZ() == ground.getZ()) return -1;
-        if (!CityBlueprint.replaceable(world.getBlockState(ground.up()))
-                || !CityBlueprint.replaceable(world.getBlockState(ground.up(2)))) return -1;
+        if (!clearable(world.getBlockState(ground.up()))
+                || !clearable(world.getBlockState(ground.up(2)))) return -1;
         for (int depth = 0; depth <= MAX_FILL; depth++) {
             var state = world.getBlockState(ground.down(depth));
             if (state.isOf(Blocks.DIRT_PATH)) return depth == 0 ? 0 : -1;
-            if (state.isOf(Blocks.GRASS_BLOCK) || state.isOf(Blocks.DIRT)
-                    || state.isOf(Blocks.COARSE_DIRT) || state.isOf(Blocks.PODZOL)) return depth;
+            if (CityTerrain.natural(state)) return depth;
             if (!CityBlueprint.replaceable(state)) return -1;
         }
         return -1;

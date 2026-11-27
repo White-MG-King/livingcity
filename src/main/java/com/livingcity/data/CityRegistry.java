@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.TreeMap;
@@ -26,20 +27,33 @@ import net.minecraft.world.biome.Biome;
 
 /** All overworld cities and their exclusive chunk ownership are serialized together. */
 public final class CityRegistry extends PersistentState {
-    public static final int SAVE_VERSION = 6;
+    public static final int SAVE_VERSION = 8;
     private final TreeMap<Integer, CityData> cities = new TreeMap<>();
     private final Map<Long, CityData> owners = new HashMap<>();
     private final Map<Long, RegistryEntry<Biome>> perimeterBiomes = new HashMap<>();
     private final CityRules rules = new CityRules();
+    private final GroundPreparation groundPreparation = new GroundPreparation();
+    private final CityConstructionQueue construction = new CityConstructionQueue();
+    private long landRevision;
     private final CityAdmissions admissions = new CityAdmissions();
     private final CityNations nations = new CityNations();
+    private final CityTrade trade = new CityTrade();
     private final CityCampaignWorld battlefield = new CityCampaignWorld(this);
     private WarSimulation war = new WarSimulation();
     private long worldCycle;
 
     public CityRules rules() { return rules; }
+    public GroundPreparation groundPreparation() { return groundPreparation; }
+    public CityConstructionQueue construction() { return construction; }
+    public long landRevision() { return landRevision; }
+    public List<ChunkPos> boundaries() {
+        return cities.values().stream().filter(CityData::isFounded)
+                .flatMap(city -> city.land.perimeter.stream()).distinct()
+                .map(key -> new ChunkPos(CityData.xOf(key), CityData.zOf(key))).toList();
+    }
     public CityAdmissions admissions() { return admissions; }
     public CityNations nations() { return nations; }
+    public CityTrade trade() { return trade; }
     public long worldCycle() { return worldCycle; }
     public WarSimulation.View warView() { return war.view(); }
 
@@ -137,11 +151,36 @@ public final class CityRegistry extends PersistentState {
         return false;
     }
 
+    boolean canClaimPlot(CityData city, CityPlot plot) {
+        var keys = plot.chunkKeys();
+        long extra = keys.stream().filter(key -> !city.land.chunks.contains(key)).count();
+        return (rules.unlimited() || city.land.chunkCount() + extra <= rules.territory())
+                && keys.stream().allMatch(key -> !nations.reserves(key)
+                && (owner(CityData.xOf(key), CityData.zOf(key)) == null || owner(CityData.xOf(key), CityData.zOf(key)) == city))
+                && keys.stream().anyMatch(key -> city.land.chunks.contains(key)
+                || java.util.Arrays.stream(neighbors(key)).anyMatch(city.land.chunks::contains));
+    }
+
+    boolean claimPlot(CityData city, CityPlot plot) {
+        if (!canClaimPlot(city, plot)) return false;
+        // A rectangular footprint is four-connected, so every added cell joins the existing city.
+        var pending = new java.util.LinkedHashSet<>(plot.chunkKeys());
+        while (!pending.isEmpty()) {
+            long next = pending.stream().filter(key -> city.land.chunks.contains(key)
+                    || java.util.Arrays.stream(neighbors(key)).anyMatch(city.land.chunks::contains)).findFirst().orElseThrow();
+            addCell(city, next);
+            pending.remove(next);
+        }
+        return true;
+    }
+
 
     public void tickExpansion(ServerWorld world, CityData city) {
         var claimed = tryTimedExpansion(city, key -> {
             int x = CityData.xOf(key), z = CityData.zOf(key);
             if (!world.getWorldBorder().contains(new ChunkPos(x, z))) return false;
+            var loaded = world.getChunkManager().getWorldChunk(x, z);
+            if (loaded != null) return CitySurface.hasDrySurface(loaded);
             // Sample the generator's biome at the chunk center, without acquiring a chunk ticket.
             var biome = perimeterBiomes.computeIfAbsent(key, ignored ->
                     world.getGeneratorStoredBiome(x * 4 + 2, Math.floorDiv(world.getSeaLevel(), 4), z * 4 + 2));
@@ -203,6 +242,7 @@ public final class CityRegistry extends PersistentState {
     private void addCell(CityData city, long k, boolean survey) {
         owners.put(k,city);
         if(city.land.chunks.add(k)) {
+            landRevision++;
             indexPerimeter(city.land, k);
             perimeterBiomes.remove(k);
             if (survey) city.land.requestSurvey(CityData.xOf(k), CityData.zOf(k));
@@ -281,6 +321,7 @@ public final class CityRegistry extends PersistentState {
         nbt.put("cityRules", rules.write());
         nbt.put("nations", nations.write());
         WarSave.write(nbt, war);
+        trade.write(nbt);
         NbtCompound records = new NbtCompound();
         cities.forEach((id,city)->records.put(id.toString(),city.writeNbt(new NbtCompound())));
         nbt.put("cities",records);
@@ -312,6 +353,7 @@ public final class CityRegistry extends PersistentState {
         }
         registry.nations.read(registry, nbt.getCompound("nations"));
         registry.war = WarSave.read(nbt, registry.battlefield, registry.worldCycle);
+        registry.trade.read(registry, nbt);
         return registry;
     }
 }

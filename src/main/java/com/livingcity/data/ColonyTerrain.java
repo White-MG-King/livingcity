@@ -25,6 +25,8 @@ final class ColonyTerrain {
             }
             return false;
         }
+        Boolean recorded = com.livingcity.web.CityMapTerrain.recordedDrySurface(world, cx, cz);
+        if (recorded != null) return recorded;
         var biome = world.getGeneratorStoredBiome(cx * 4 + 2, world.getSeaLevel() >> 2, cz * 4 + 2);
         return !biome.isIn(BiomeTags.IS_OCEAN) && !biome.isIn(BiomeTags.IS_RIVER);
     }

@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -69,6 +70,7 @@ final class OfflineWorld implements WarSimulation.World {
     private int campaignSamples;
     boolean battleDemo;
     private SeaLanes sea;
+    private List<Cell> preparedBerths = List.of();
     private int nextId = 1;
     long cycle;
     boolean unlimited;
@@ -120,6 +122,7 @@ final class OfflineWorld implements WarSimulation.World {
         if (cycle < 0 || cycle >= Long.MAX_VALUE / 2) throw new IllegalArgumentException("世界周期无效");
         restoreCountries(root.getCompound("nations"));
         war = WarSave.read(root, this, cycle);
+        market.importMain(this, com.livingcity.data.CityTrade.saved(root));
         changeLayer(null);
     }
 
@@ -285,20 +288,36 @@ final class OfflineWorld implements WarSimulation.World {
     }
 
     SeaLanes sea() {
-        if (sea == null) {
-            Set<Cell> water = new HashSet<>();
-            for (Sample sample : samples.values()) {
-                for (int dz = 0; dz < 4; dz++) {
-                    for (int dx = 0; dx < 4; dx++) {
-                        if (sample.tiles().get(dz * 4 + dx).water()) {
-                            water.add(new Cell(sample.x() * 4 + dx, sample.z() * 4 + dz));
-                        }
+        if (sea == null) sea = indexSea(samples.values());
+        return sea;
+    }
+
+    static SeaLanes indexSea(Collection<Sample> surface) {
+        Set<Cell> water = new HashSet<>();
+        for (Sample sample : surface) {
+            for (int dz = 0; dz < 4; dz++) {
+                for (int dx = 0; dx < 4; dx++) {
+                    if (sample.tiles().get(dz * 4 + dx).water()) {
+                        water.add(new Cell(sample.x() * 4 + dx, sample.z() * 4 + dz));
                     }
                 }
             }
-            sea = new SeaLanes(water);
         }
-        return sea;
+        return new SeaLanes(water);
+    }
+
+    List<Cell> berths() {
+        return towns.stream().filter(town -> town.port != null).map(town -> town.port.berth()).toList();
+    }
+
+    boolean needsSeaPreparation(List<Cell> berths) {
+        return sea == null || !sea.componentsPrepared() || !preparedBerths.equals(berths);
+    }
+
+    void usePreparedSea(SeaLanes prepared, List<Cell> berths) {
+        if (sea != null) prepared.keepRoutesFrom(sea);
+        sea = prepared;
+        preparedBerths = berths;
     }
 
     void changeLayer(Integer y) {
@@ -602,6 +621,13 @@ final class OfflineWorld implements WarSimulation.World {
             config.requireBuildingMaterials = true;
             sim = new SimHarness(seed ^ center, config);
             CityLedgerCodec.read(sim.city, city);
+            if (city.contains("portSite", NbtElement.COMPOUND_TYPE)) {
+                var portSite = city.getCompound("portSite");
+                var turn = net.minecraft.util.BlockRotation.values()[Math.floorMod(portSite.getInt("rotation"), 4)];
+                var design = com.livingcity.stage.CityBlueprint.design("port", turn);
+                var entrance = BlockPos.fromLong(portSite.getLong("origin")).add(design.entrance());
+                port = new Port(new Site(entrance.getX(), entrance.getZ()), new Cell(portSite.getInt("berthX"), portSite.getInt("berthZ")));
+            }
             if (city.contains("quarry", NbtElement.LONG_TYPE)) quarry = position(city.getLong("quarry"));
             if (sim.city.forestAvailable && city.contains("forestChunk", NbtElement.LONG_TYPE)) {
                 long key = city.getLong("forestChunk");

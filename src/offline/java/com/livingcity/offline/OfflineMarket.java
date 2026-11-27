@@ -31,6 +31,26 @@ final class OfflineMarket {
     final ArrayDeque<Voyage> history = new ArrayDeque<>();
     long nextId = 1;
 
+    void importMain(OfflineWorld world, com.livingcity.data.CityTrade.State saved) {
+        nextId = saved.nextId();
+        for (var town : world.towns) {
+            town.coins = saved.coins().getOrDefault(town.id, INITIAL_COINS);
+            if (town.coins < 0) throw new IllegalArgumentException("贸易账户无效");
+        }
+        var occupied = new java.util.HashSet<Integer>();
+        for (var voyage : saved.voyages()) {
+            if (!com.livingcity.data.CityTrade.validVoyage(voyage, nextId) || town(world, voyage.buyer()).port == null
+                    || town(world, voyage.seller()).port == null || !occupied.add(voyage.buyer()) || !occupied.add(voyage.seller())) {
+                throw new IllegalArgumentException("贸易航次无效");
+            }
+            active.put(voyage.id(), voyage);
+        }
+        for (var voyage : saved.history()) {
+            if (!com.livingcity.data.CityTrade.validVoyage(voyage, nextId)) throw new IllegalArgumentException("贸易历史无效");
+            history.add(voyage);
+        }
+    }
+
     void advance(OfflineWorld world) {
         var arrivals = active.values().iterator();
         while (arrivals.hasNext()) {

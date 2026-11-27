@@ -10,6 +10,7 @@ import com.livingcity.entity.LivingCityEntities;
 import com.livingcity.item.HourglassItem;
 import com.livingcity.sensor.CitySensorBus;
 import com.livingcity.sensor.CitySimTicker;
+import com.livingcity.web.CityMapTerrain;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -42,6 +43,7 @@ public class LivingCityMod implements ModInitializer {
 		LivingCityEntities.register();
 		CityCommand.register();
 		CitySimTicker.register();
+		CityMapTerrain.register();
 		net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents.AFTER.register((world,player,pos,state,blockEntity)->{
 			if (state.getBlock() instanceof net.minecraft.block.BedBlock || state.isOf(net.minecraft.block.Blocks.DIRT_PATH)) {
 				requestSurfaceSurvey(world,pos);
